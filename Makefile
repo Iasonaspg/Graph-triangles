@@ -44,6 +44,6 @@ gpu:
 clean:
 	rm *.o
 
-run:
-	./$(PROJECT_NAME) -v 5 5 2
+#run:
+#	./$(PROJECT_NAME) -v 5 5 2
 

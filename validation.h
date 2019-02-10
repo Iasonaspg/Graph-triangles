@@ -1,15 +1,16 @@
 /**********************************************************************
  *
- * cpuValidation.h -- cpuValidation function for the NNs of Q as 
- * 					  calculated via CUDA
+ * validation.h -- Validation function for the number of triangles 
+ * 					  calculated
  *
- * Frank Blanning <frankgou@auth.gr>
+ * Michail Iason Pavlidis <michailpg@ece.auth.gr>
  * John Flionis <iflionis@auth.gr>
  *
  **********************************************************************/
-#ifndef CPUVALIDATION_H
-#define CPUVALIDATION_H
 
-int cpuValidation(float *Q, int NQ, float *C, int NC, int *results, char verboseFlag);
+#ifndef VALIDATION_H
+#define VALIDATION_H
 
-#endif /* CPUVALIDATION_H */
+int validation(int nT, int nT_Mat);
+
+#endif /* VALIDATION_H */

@@ -11,6 +11,6 @@
 #ifndef READ_MAT_FILE_H
 #define READ_MAT_FILE_H
 
-int* readMatFile(const char *fileName);
+int readMatFile(const char *fileName, int* A, int* N);
 
 #endif /* READ_MAT_FILE_H */

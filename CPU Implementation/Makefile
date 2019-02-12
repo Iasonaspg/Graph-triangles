@@ -8,11 +8,12 @@
 ######################################################################
 
 CC = gcc
-CFLAGS = -O3
+HEADER = /home/johnfli/MATLABextern/include/mat.h
+CFLAGS = -O3 -Iinclude
 
 PROJECT_NAME = triangles
 
-all: build
+all: build $(HEADER)
 	$(CC) $(CFLAGS) $^ -o $(PROJECT_NAME)
 
 build:

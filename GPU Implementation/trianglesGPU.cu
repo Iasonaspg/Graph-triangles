@@ -12,9 +12,9 @@
 #include <cuda.h>
 #include <string.h>
 #include <assert.h>
+#include "readMatFile.h"
 #include "cuBandCFinder.h"
 #include "cuTrianglesFinder.h"
-#include "readMatFile.h"
 #include "validation.h"
 
 int main (int argc, char **argv) {
@@ -23,15 +23,15 @@ int main (int argc, char **argv) {
   int *A, *d_A, *d_C, N, M;
 
   /* Parsing input arguments */
-  if (argc > 1)
+  if (argc > 1) {
     N = 1<<atoi(argv[1]);  // Not sure if needed
     M = 1<<atoi(argv[2]);  // Not sure if needed
     nT_Mat = readMatFile(argv[3], A, &N);
-  else{
+  } else {
     printf("Usage: ./triangles <matfile> <N> <M>\n");
     printf(" where <N> is exp of number of Nodes in Graph\n");
     printf(" where <M> is exp of number of Edges in Graph\n");
-    printf(" where <matfile> is the name of the MAT-file (auto | great-britain_osm | delaunay_n22)\n");
+    printf(" where <matfile.mat> is the name of the MAT-file (auto | great-britain_osm | delaunay_n22)\n");
     exit(1);
   }
 

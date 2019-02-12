@@ -36,8 +36,7 @@ build: gpu #cpu
 gpu:
 	$(NVCC) $(NVCCFLAGS) *.cu
 
-# Try and fix this later so that if a .c file doesn't exist, skip
-# the call to gcc.
+# Try and fix this later, so that .c files don't need to be named and compiled as .cu
 #cpu:			
 #	$(CC) $(CFLAGS) *.c
 

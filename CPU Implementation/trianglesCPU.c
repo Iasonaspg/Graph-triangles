@@ -9,6 +9,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/time.h>
 #include <assert.h>
 #include "readMatFile.h"
 #include "validation.h"
@@ -17,7 +18,7 @@ int findTriangles(int *A, int N);
 
 int main (int argc, char **argv) {
 
-  int nT, nT_Mat
+  int nT, nT_Mat;
   int *A, N, M;
 
   /* Variables to hold execution time */
@@ -25,11 +26,11 @@ int main (int argc, char **argv) {
   double cpu_time;
 
   /* Parsing input arguments */
-  if (argc > 1)
+  if (argc > 1) {
     N = 1<<atoi(argv[1]);  // Not sure if needed
     M = 1<<atoi(argv[2]);  // Not sure if needed
     nT_Mat = readMatFile(argv[3], A, &N);
-  else{
+  } else{
     printf("Usage: ./triangles <matfile> <N> <M>\n");
     printf(" where <matfile> is the name of the MAT-file (auto | great-britain_osm | delaunay_n22)\n");
     printf(" where <N> is exp of number of Nodes in Graph\n");
@@ -75,6 +76,7 @@ int findTriangles(int *A, int N)
 {
 
   int *C;
+  int nT = 0;
 
   // Allocating memory for the C matrix
   C = (int *) malloc( N * N * sizeof(int) );
@@ -102,7 +104,7 @@ int findTriangles(int *A, int N)
   // nT = sum(C);
   for( int row = 0; row < N; ++row )
     for( int col = 0; col < N; ++col )
-      nT += C[row * N + col]
+      nT += C[row * N + col];
 
   // nT = (1/6) * nT;
   return nT/6;

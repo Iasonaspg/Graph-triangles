@@ -25,9 +25,9 @@ close all
 %% PARAMETERS
 
 basePath  = 'https://sparse.tamu.edu/mat';
-folderPath = './';
+folderPath = '/home/johnfli/Code/PD_4/Data';
 groupName = 'DIMACS10';
-matName   = 'auto'; % auto|great-britain_osm|delaunay_n22
+matName   = 'delaunay_n22'; % auto|great-britain_osm|delaunay_n22
 
 %% (BEGIN)
 
@@ -68,8 +68,12 @@ tr = transpose(B);
 
 fprintf( '   - Writing CSV has started\n');
 
-fileID = fopen(csvFileName,'w');
+fileID = fopen( [folderPath csvFileName], 'w');
 fprintf(fileID,'%d,%d,%d\n',tr);
+
+N = length(Problem.A);
+M = length(lines)/2;
+
 clear Problem;
 fclose(fileID);
 
@@ -85,7 +89,7 @@ matlab_time = toc(ticCnt);
 
 fprintf( '   - DONE: %d triangles found in %.5f sec\n', nT, matlab_time );
 
-dlmwrite([folderPath validationFileName], [nT matlab_time], 'delimiter', ',', 'precision', 9);
+dlmwrite([folderPath validationFileName], [N M nT matlab_time], 'delimiter', ',', 'precision', 9);
 
 %% (END)
 

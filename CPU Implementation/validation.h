@@ -11,6 +11,6 @@
 #ifndef VALIDATION_H
 #define VALIDATION_H
 
-int validation(int nT, int nT_Mat);
+int validation(long nT, long nT_Mat);
 
 #endif /* VALIDATION_H */

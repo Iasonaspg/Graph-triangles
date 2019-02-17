@@ -57,25 +57,24 @@ Problem = ioData.Problem;
 % keep only adjacency matrix (logical values)
 A = Problem.A > 0;
 
-% SAVE INTO .CSV FORMAT
+%% SAVE SPARSE MATRIX INTO CSR FORMAT INTO .CSV FILE
+   
+[rows, columns, values] = find(A);
 
-[lines, columns, values] = find(A);
-
-lines = lines - 1;
-columns = columns - 1;
-B = [lines columns values];
-tr = transpose(B);
+csrValA = values;
+csrRowPtrA = [0; full(cumsum(sum(A,2)))];
+csrColIndA = columns - 1;
 
 fprintf( '   - Writing CSV has started\n');
 
-fileID = fopen( [folderPath csvFileName], 'w');
-fprintf(fileID,'%d,%d,%d\n',tr);
+dlmwrite([folderPath csvFileName], csrValA', 'delimiter', ',', 'precision', 9);
+dlmwrite([folderPath csvFileName], csrRowPtrA', '-append', 'delimiter', ',', 'precision', 9);
+dlmwrite([folderPath csvFileName], csrColIndA', '-append', 'delimiter', ',', 'precision', 9);
 
 N = length(Problem.A);
-M = length(lines)/2;
+M = length(rows)/2;
 
 clear Problem;
-fclose(fileID);
 
 fprintf( '   - CSV Created\n');
 
@@ -89,7 +88,10 @@ matlab_time = toc(ticCnt);
 
 fprintf( '   - DONE: %d triangles found in %.5f sec\n', nT, matlab_time );
 
+%% SAVE RESULTS INTO VALIDATION FILE
+
 dlmwrite([folderPath validationFileName], [N M nT matlab_time], 'delimiter', ',', 'precision', 9);
+
 
 %% (END)
 

@@ -16,32 +16,34 @@
 #include "readCSV.h"
 #include "validation.h"
 
-int findTriangles(int *A, int N);
+int findTriangles(struct Sparse_Matrix_in_CSR_format A);
 
 int main (int argc, char **argv) {
 
-  int nT, nT_Mat;
-  int *A, N, M;
+  int nT, nT_Mat, N, M;
 
   /* Variables to hold execution time */
   struct timeval startwtime, endwtime;
   double cpu_time, matlab_time;
 
+  struct Sparse_Matrix_in_CSR_format A;
+
   /* Parsing input arguments */
-  if (argc == 4) {
+  if (argc < 4) {
     // N = 1<<atoi(argv[1]);  // Not sure if needed
     // M = 1<<atoi(argv[2]);  // Not sure if needed
-    readCSV(argv[1], A, &N, &nT_Mat, &matlab_time);
+    readCSV(argv[1], &A, &N, &M, &nT_Mat, &matlab_time);
   } else {
     printf("Usage: ./triangles <CSVfileName>\n"); // <N> <M>
     // printf(" where <N> is exp of number of Nodes in Graph\n");
     // printf(" where <M> is exp of number of Edges in Graph\n");
     printf(" where <CSVfileName.csv> is the name of the input data file (auto | great-britain_osm | delaunay_n22)\n");
+    printf("No need for suffix '.csv'\n");
     exit(1);
   }
 
             gettimeofday (&startwtime, NULL);
-  nT = findTriangles(A, N);
+  nT = findTriangles(A);
             gettimeofday (&endwtime, NULL);
 
 
@@ -66,7 +68,7 @@ int main (int argc, char **argv) {
             fclose(fp);
 
   /* Cleanup */
-  free(A);
+  // free(A);
   
   /* Exit */
   return 0;
@@ -74,7 +76,7 @@ int main (int argc, char **argv) {
 
 
 /* Function that finds the number of triangles formed in the graph */
-int findTriangles(int *A, int N)
+int findTriangles(struct Sparse_Matrix_in_COO_format A)
 {
 
   // int *C;
@@ -83,12 +85,77 @@ int findTriangles(int *A, int N)
   // Allocating memory for the C matrix
   // C = (int *) malloc( N * N * sizeof(int) );
 
-  
+    int apos, bpos; 
+    int len = A.nnz;
+
+    // iterate over all elements of A 
+    for (apos = 0; apos < len;) { 
+
+      // current row of result matrix 
+      int r = A.csrRowPtrA[apos]; 
+
+      // iterate over all elements of A again 
+      for (bpos = 0; bpos < len;) { 
+
+        // current column of result matrix 
+        int c = A.csrColIndA[bpos]; 
+
+        // temporary pointers created to add all 
+        // multiplied values to obtain current 
+        // element of result matrix 
+        int tempa = apos; 
+        int tempb = bpos; 
+
+        int sum = 0; 
+
+        // iterate over all elements with 
+        // same row and col value 
+        // to calculate result[r] 
+        while (tempa < len && A.csrRowPtrA[apos] == r 
+          && tempb < len && A.csrColIndA[bpos] == c) { 
+
+          /* ( Hadamard Optimization ) */
+          if (A.csrValA[tempa] != 0) {
+            if (A.csrColIndA[tempa] < A.csrRowPtrA[tempb]) 
+
+              // skip a 
+              tempa++; 
+
+            else if (A.csrColIndA[tempa] > A.csrRowPtrA[tempb]) 
+
+              // skip b 
+              tempb++; 
+            else
+              // same col, so multiply and increment 
+              sum += A.csrValA[tempa++] * A.csrValA[tempb++]; 
+
+            }
+          else {
+            tempa++;
+            tempb++;
+          }
+        } 
+        // add sum to the total nT,
+        // without storing the value anywhere
+        nT += sum;
+
+        while (bpos < len && A.csrColIndA[bpos] == c) 
+
+          // jump to next column 
+          bpos++; 
+      } 
+
+      while (apos < len && A.csrRowPtrA[apos] == r) 
+
+        // jump to next row 
+        apos++; 
+    } 
 
   // nT = (1/6) * nT;
   return nT/6;
 }
 
+/*
   public void add(sparse_matrix b) 
   { 
 
@@ -320,3 +387,4 @@ int findTriangles(int *A, int N)
     sparse_matrix atranspose = a.transpose(); 
     atranspose.print(); 
   }
+  */

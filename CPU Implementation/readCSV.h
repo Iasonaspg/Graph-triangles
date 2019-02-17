@@ -8,9 +8,18 @@
  *
  **********************************************************************/
 
+/* Struct for Sparse Matrix type in the Compressed Sparse Row Format (CSR) */
+struct Sparse_Matrix_in_CSR_format {
+   int nnz;
+   float* csrValA;
+   int* csrRowPtrA;
+   int* csrColIndA;
+};
+
+
 #ifndef READ_CSV_H
 #define READ_CSV_H
 
-int readCSV(char* fName, struct Sparse_Matrix_in_COO_format *A, long* N, long* M, long* nT_Mat, double* matlab_time);
+int readCSV(char* fName, struct Sparse_Matrix_in_CSR_format *A, int* N, int* M, int* nT_Mat, double* matlab_time);
 
 #endif /* READ_CSV_H */

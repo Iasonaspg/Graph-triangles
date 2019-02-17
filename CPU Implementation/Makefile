@@ -7,18 +7,17 @@
  #
 ######################################################################
 
-CC = gcc
-#HEADER = /home/johnfli/MATLABextern/include/mat.h
-CFLAGS = -O3 #-Iinclude
+GCC = gcc
 
-PROJECT_NAME = triangles
+CFLAGS = -O3
 
-all: build # $(HEADER)
-	$(CC) $(CFLAGS) $^ -o $(PROJECT_NAME)
+PROJECT_NAME = cpu_triangles
 
-build:
-	$(CC) $(CFLAGS) *.c
+all: trianglesCPU.o validation.o readCSV.o
+	$(GCC) $(CFLAGS) $^ -o $(PROJECT_NAME)
+
+%.o: %.c
+	$(GCC) -c $(CFLAGS) $^
 
 clean:
-	rm *.o
-
+	rm -f *.o *~ $(PROJECT_NAME)

@@ -9,13 +9,12 @@
  **********************************************************************/
 
 /* Struct for Sparse Matrix type in the Compressed Sparse Row Format (CSR) */
-struct Sparse_Matrix_in_CSR_format {
-   int nnz;
-   float* csrValA;
-   int* csrRowPtrA;
-   int* csrColIndA;
-};
-
+typedef struct Sparse_Matrix_in_CSR_format {
+   int 		nnz;
+   float* 	csrVal;
+   int* 	csrRowPtr;
+   int* 	csrColInd;
+}csrFormat;
 
 #ifndef READ_CSV_H
 #define READ_CSV_H

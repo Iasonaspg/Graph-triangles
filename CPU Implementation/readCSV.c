@@ -20,7 +20,7 @@
 int split_line_int(char* str, char* delim, int* args);
 int split_line_float(char* str, char* delim, float* args);
 char *trim_space(char *in);
-int readCSV(char* fName, struct Sparse_Matrix_in_CSR_format *A, int* N, int* M, int* nT_Mat, double* matlab_time);
+int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matlab_time);
 // int findLines(char* fName);
 
 
@@ -30,7 +30,7 @@ int main(int argc, char** argv){
     int N, M, nT_Mat;
     double matlab_time;
 
-    struct Sparse_Matrix_in_CSR_format A;
+    csrFormat A;
 
     readCSV(fName, &A, &N, &M, &nT_Mat, &matlab_time);
 
@@ -69,12 +69,11 @@ int findLines(char* fName){
     return i;
 }
 
-int readCSV(char* fName, struct Sparse_Matrix_in_CSR_format *A, int* N, int* M, int* nT_Mat, double* matlab_time){
+int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matlab_time){
     FILE * fp;
     char * line = NULL;
     size_t len = 0;
     ssize_t read;
-    //int* tmp = malloc(3*sizeof(int));
 
     /* Constructing the full .csv file names */
     char* csvFileName;
@@ -93,11 +92,7 @@ int readCSV(char* fName, struct Sparse_Matrix_in_CSR_format *A, int* N, int* M, 
     strcat(valFileName, csvFileName);
     strcat(valFileName, "_validation_file.csv");
 
-    strcat(csvFileName, ".csv");
-
-    // int leng = findLines(csvFileName);
-
-    // printf("Lines in the file are: %d\n",--leng);   
+    strcat(csvFileName, ".csv"); 
 
     /* Reading the original matrix N and M, as well as 
        the matlab result and time elapsed */
@@ -131,7 +126,7 @@ int readCSV(char* fName, struct Sparse_Matrix_in_CSR_format *A, int* N, int* M, 
     /* Close file */
     fclose(fp);
 
-    /* Allocating memory to hold struct of sparse matrix A */
+    /* Allocating memory to hold the struct of Sparse Matrix A */
     A->csrValA = malloc ((A->nnz)*sizeof(float));
     A->csrRowPtrA = malloc (((*N)+1)*sizeof(int));
     A->csrColIndA = malloc ((A->nnz)*sizeof(int));
@@ -155,7 +150,6 @@ int readCSV(char* fName, struct Sparse_Matrix_in_CSR_format *A, int* N, int* M, 
         
     /* Close file */
     fclose(fp);
-
 
     return EXIT_SUCCESS;
 }

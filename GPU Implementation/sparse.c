@@ -3,6 +3,27 @@
 #include <assert.h>
 #include <cuda.h>
 #include <cusparse_v2.h>
+#include <sys/time.h>
+
+
+typedef struct Sparse_Matrix_in_CSR_format {
+   int   nnz;
+   float* csrVal;
+   int* csrRowPtr;
+   int* csrColInd;
+}csrFormat;
+
+void mulSparse(csrFormat* A, csrFormat* C, int N);
+
+double cpuSecond() {
+    struct timeval tp;
+    gettimeofday(&tp,NULL);
+    return ((double)tp.tv_sec + (double)tp.tv_usec*1.e-6);
+}
+
+__global__ void pri(float* tmp){
+    printf("Random value: %f\n",tmp[4]);
+}
 
 int main()
 {
@@ -10,15 +31,12 @@ int main()
     cusparseHandle_t handle;   
     cusparseCreate(&handle);
 
-    /**************************/
-    /* SETTING UP THE PROBLEM */
-    /**************************/
-    const int N     = 3;                // Number of rows and columns
+    const int N = 3;                // Number of rows and columns
 
     // Host side dense matrices
-    double *h_A_dense = (double*)malloc(N * N * sizeof(double));
-    double *h_x_dense = (double*)malloc(N *     sizeof(double));
-    double *h_y_dense = (double*)malloc(N *     sizeof(double));
+    float *h_A_dense = (float*)malloc(N * N * sizeof(float));
+    float *h_x_dense = (float*)malloc(N *     sizeof(float));
+    float *h_y_dense = (float*)malloc(N *     sizeof(float));
 
     // Column-major ordering
     h_A_dense[0] = 0.4612;  h_A_dense[4] = -2.06;     h_A_dense[8]  = 10.35; 
@@ -26,24 +44,25 @@ int main()
     h_A_dense[2] = 1.3566;  h_A_dense[6] = 7.07;       
     h_A_dense[3] = 0;      h_A_dense[7] = 0.0;          
 
-    // --- Initializing the data and result vectors
+    // Initializing the data and result vectors
     for (int k = 0; k < N; k++) {
         h_x_dense[k] = 1.;
         h_y_dense[k] = 0.;
     }
 
-    // --- Create device arrays and copy host arrays to them
-    double *d_A_dense;  
-    cudaMalloc(&d_A_dense, N*N*sizeof(double));
-    double *d_x_dense;  
-    cudaMalloc(&d_x_dense, N*sizeof(double));
-    double *d_y_dense;  
-    cudaMalloc(&d_y_dense, N*sizeof(double));
-    cudaMemcpy(d_A_dense, h_A_dense, N*N*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_x_dense, h_x_dense, N*sizeof(double), cudaMemcpyHostToDevice);
-    cudaMemcpy(d_y_dense, h_y_dense, N*sizeof(double), cudaMemcpyHostToDevice);
+    // Create device arrays and copy host arrays to them
+    float *d_A_dense;  
+    cudaMalloc(&d_A_dense, N*N*sizeof(float));
+    float *d_x_dense;  
+    cudaMalloc(&d_x_dense, N*sizeof(float));
+    float *d_y_dense;  
+    cudaMalloc(&d_y_dense, N*sizeof(float));
+    cudaMemcpy(d_A_dense, h_A_dense, N*N*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_x_dense, h_x_dense, N*sizeof(float), cudaMemcpyHostToDevice);
+    cudaMemcpy(d_y_dense, h_y_dense, N*sizeof(float), cudaMemcpyHostToDevice);
 
-    // Descriptor for sparse matrix A
+
+    // Descriptor for sparse matrix A and C
     cusparseMatDescr_t descrA,descrC;     
     cusparseCreateMatDescr(&descrA);
     cusparseCreateMatDescr(&descrC);
@@ -57,64 +76,40 @@ int main()
     // Device side number of nonzero elements per row of matrix A
     int *d_nnzPerVectorA;   
     cudaMalloc(&d_nnzPerVectorA, N * sizeof(*d_nnzPerVectorA));
-    cusparseDnnz(handle, CUSPARSE_DIRECTION_ROW, N, N, descrA, d_A_dense, lda, d_nnzPerVectorA, &nnzA);
+    cusparseSnnz(handle, CUSPARSE_DIRECTION_ROW, N, N, descrA, d_A_dense, lda, d_nnzPerVectorA, &nnzA);
 
-    // Host side number of nonzero elements per row of matrix A
-    int *h_nnzPerVectorA = (int *)malloc(N*sizeof(*h_nnzPerVectorA));
-    cudaMemcpy(h_nnzPerVectorA, d_nnzPerVectorA, N * sizeof(*h_nnzPerVectorA), cudaMemcpyDeviceToHost);
+    // Sparse matrix
+    float *d_A;            
+    cudaMallocManaged(&d_A, nnzA*sizeof(*d_A));
+    int *d_A_RowIndices;    
+    cudaMallocManaged(&d_A_RowIndices, (N + 1) * sizeof(*d_A_RowIndices));
+    int *d_A_ColIndices;    
+    cudaMallocManaged(&d_A_ColIndices, nnzA * sizeof(*d_A_ColIndices));
 
-    //printf("Number of nonzero elements in dense matrix A = %i\n\n", nnzA);
-    for (int i = 0; i < N; ++i){
-        //printf("Number of nonzero elements in row %i for matrix = %i \n", i, h_nnzPerVectorA[i]);
-    } 
-    printf("\n");
+    cusparseSdense2csr(handle, N, N, descrA, d_A_dense, lda, d_nnzPerVectorA, d_A, d_A_RowIndices, d_A_ColIndices);
 
-    // Device side sparse matrix
-    double *d_A, *d_C;            
-    cudaMalloc(&d_A, nnzA*sizeof(*d_A));
-    int *d_A_RowIndices, *d_C_RowIndices;    
-    cudaMalloc(&d_A_RowIndices, (N + 1) * sizeof(*d_A_RowIndices));
-    cudaMalloc(&d_C_RowIndices, (N + 1) * sizeof(*d_C_RowIndices));
-    int *d_A_ColIndices, *d_C_ColIndices;    
-    cudaMalloc(&d_A_ColIndices, nnzA * sizeof(*d_A_ColIndices));
+    csrFormat* test = (csrFormat*)malloc(sizeof(csrFormat));
+    test->nnz = nnzA;
+    test->csrVal = d_A;
+    test->csrColInd = d_A_ColIndices;
+    test->csrRowPtr = d_A_RowIndices;
+    
+    //printf("Random value: %f\n",d_A[3]);
+    csrFormat* test1 = (csrFormat*)malloc(sizeof(csrFormat));
+    // cudaMallocManaged(&test1,sizeof(csrFormat));
 
-    cusparseDdense2csr(handle, N, N, descrA, d_A_dense, lda, d_nnzPerVectorA, d_A, d_A_RowIndices, d_A_ColIndices);
+    mulSparse(test,test1,N);
+    
 
-    int nnzC = 0;
-    cusparseOperation_t transA = CUSPARSE_OPERATION_NON_TRANSPOSE;
-    cusparseXcsrgemmNnz(handle,transA,transA,N,N,N,descrA,nnzA,d_A_RowIndices,d_A_ColIndices,descrA,nnzA,d_A_RowIndices,d_A_ColIndices,descrC,d_C_RowIndices,&nnzC);
+    for (int i=0; i<test1->nnz;i++){
+        printf("Values: %f\n",test1->csrVal[i]);
+    }
+    
+    // const float alpha = 1.;
+    // const float beta  = 0.;
+    // cusparseScsrmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, N, nnzA, &alpha, descrA, d_A, d_A_RowIndices, d_A_ColIndices, d_x_dense,&beta, d_y_dense);
 
-    printf("Non zero of C: %d\n",nnzC);
-
-    cudaMalloc(&d_C, nnzC*sizeof(*d_C));
-    cudaMalloc(&d_C_ColIndices, nnzC * sizeof(*d_C_ColIndices));
-    cusparseDcsrgemm(handle,transA,transA,N,N,N,descrA,nnzA,d_A,d_A_RowIndices,d_A_ColIndices,descrA,nnzA,d_A,d_A_RowIndices,d_A_ColIndices,descrC,d_C,d_C_RowIndices,d_C_ColIndices);
-
-    // Host side sparse matrices
-    double *h_C = (double *)malloc(nnzC * sizeof(*h_C));        
-    // int *h_A_RowIndices = (int *)malloc((N + 1) * sizeof(*h_A_RowIndices));
-    // int *h_A_ColIndices = (int *)malloc(nnzA * sizeof(*h_A_ColIndices));
-    cudaMemcpy(h_C, d_C, nnzC * sizeof(*h_C), cudaMemcpyDeviceToHost);
-    // cudaMemcpy(h_A_RowIndices, d_A_RowIndices, (N + 1) * sizeof(*h_A_RowIndices), cudaMemcpyDeviceToHost);
-    // cudaMemcpy(h_A_ColIndices, d_A_ColIndices, nnzA * sizeof(*h_A_ColIndices), cudaMemcpyDeviceToHost);
-
-    // printf("\nOriginal matrix A in CSR format\n\n");
-    for (int i = 0; i < nnzC; ++i) printf("C[%i] = %f\n", i, h_C[i]); printf("\n");
-
-    // printf("\n");
-    // for (int i = 0; i < (N + 1); ++i) printf("h_A_RowIndices[%i] = %i \n", i, h_A_RowIndices[i]); printf("\n");
-
-    // printf("\n");
-    // for (int i = 0; i < nnzA; ++i) printf("h_A_ColIndices[%i] = %i \n", i, h_A_ColIndices[i]);  
-
-    // printf("\n");
-    // for (int i = 0; i < N; ++i) printf("h_x[%i] = %f \n", i, h_x_dense[i]); printf("\n");
-
-    const double alpha = 1.;
-    const double beta  = 0.;
-    cusparseDcsrmv(handle, CUSPARSE_OPERATION_NON_TRANSPOSE, N, N, nnzA, &alpha, descrA, d_A, d_A_RowIndices, d_A_ColIndices, d_x_dense,&beta, d_y_dense);
-
-    cudaMemcpy(h_y_dense,d_y_dense,N*sizeof(double),cudaMemcpyDeviceToHost);
+    // cudaMemcpy(h_y_dense,d_y_dense,N*sizeof(double),cudaMemcpyDeviceToHost);
 
     // printf("\nResult vector\n\n");
     // for (int i = 0; i < N; ++i){
@@ -123,4 +118,47 @@ int main()
 
 
     return 0;
+}
+
+void mulSparse(csrFormat* A, csrFormat* C, int N){
+
+    // Initialize cuSPARSE
+    cusparseHandle_t handle;   
+    cusparseCreate(&handle);
+
+    // csrFormat* devA;  
+    // cudaMalloc((void**)&devA,sizeof(csrFormat));  
+    // cudaMemcpy(devA,A,sizeof(csrFormat),cudaMemcpyHostToDevice);
+
+    // printf("Inside func: %f\n",A->csrVal[4]);
+
+    // Descriptor for sparse matrix A and C
+    cusparseMatDescr_t descrA,descrC;     
+    cusparseCreateMatDescr(&descrA);
+    cusparseCreateMatDescr(&descrC);
+
+    int* d_C_RowPtr;
+    cudaMallocManaged((void**)&d_C_RowPtr,(N+1)*sizeof(*d_C_RowPtr));
+
+    int nnzA = A->nnz;
+
+    int nnzC = 0;
+    cusparseOperation_t transA = CUSPARSE_OPERATION_NON_TRANSPOSE;
+    cusparseXcsrgemmNnz(handle,transA,transA,N,N,N,descrA,nnzA,A->csrRowPtr,A->csrColInd,descrA,nnzA,A->csrRowPtr,A->csrColInd,descrC,d_C_RowPtr,&nnzC);
+
+
+    printf("Non zero of C: %d\n",nnzC);
+
+    float* d_C;
+    int *d_C_ColIndices;
+    cudaMallocManaged(&d_C, nnzC*sizeof(*d_C));
+    cudaMallocManaged(&d_C_ColIndices, nnzC * sizeof(*d_C_ColIndices));
+    double start = cpuSecond();
+    cusparseScsrgemm(handle,transA,transA,N,N,N,descrA,nnzA,A->csrVal,A->csrRowPtr,A->csrColInd,descrA,nnzA,A->csrVal,A->csrRowPtr,A->csrColInd,descrC,d_C,d_C_RowPtr,d_C_ColIndices);
+    printf("Time elapsed for generating points: %f seconds\n",cpuSecond()-start);
+
+    C->nnz = nnzC;
+    C->csrVal = d_C;
+    C->csrRowPtr = d_C_RowPtr;
+    C->csrColInd =  d_C_ColIndices;
 }

@@ -1,21 +1,3 @@
-%
-% SCRIPT: FINDTRIANGLES
-%
-%   Download a graph from Sparse Matrix Collection and count the number of
-%   triangles.
-%
-
-%
-% AUTHORS
-%
-%   Dimitris Floros                         fcdimitr@auth.gr
-%
-% VERSION
-%
-%   0.1 - January 21, 2019
-%
-
-
 %% CLEAN-UP
 
 clear
@@ -27,7 +9,7 @@ close all
 basePath  = 'https://sparse.tamu.edu/mat';
 folderPath = '/home/johnfli/Code/PD_4/Data';
 groupName = 'DIMACS10';
-matName   = 'delaunay_n22'; % auto|great-britain_osm|delaunay_n22
+matName   = 'auto'; % auto|great-britain_osm|delaunay_n22
 
 %% (BEGIN)
 
@@ -40,7 +22,7 @@ fprintf( '   - %s/%s\n', groupName, matName )
 filesep = '/';
 
 matFileName = [groupName '_' matName '.mat'];
-csvFileName = [groupName '_' matName '.csv'];
+csvFileName = [groupName '_' matName '_COO.csv'];
 validationFileName = [groupName '_' matName '_validation_file.csv'];
 
 if ~exist( matFileName, 'file' )
@@ -57,19 +39,16 @@ Problem = ioData.Problem;
 % keep only adjacency matrix (logical values)
 A = Problem.A > 0;
 
-%% SAVE SPARSE MATRIX INTO CSR FORMAT INTO .CSV FILE
+%% SAVE SPARSE MATRIX INTO COO FORMAT INTO .CSV FILE
    
 [rows, columns, values] = find(A);
 
-csrValA = values;
-csrRowPtrA = [0; full(cumsum(sum(A,2)))];
-csrColIndA = columns - 1;
+rows = rows - 1;
+columns = columns - 1;
 
 fprintf( '   - Writing CSV has started\n');
 
-dlmwrite([folderPath csvFileName], csrValA', 'delimiter', ',', 'precision', 9);
-dlmwrite([folderPath csvFileName], csrRowPtrA', '-append', 'delimiter', ',', 'precision', 9);
-dlmwrite([folderPath csvFileName], csrColIndA', '-append', 'delimiter', ',', 'precision', 9);
+dlmwrite([folderPath csvFileName], [values rows columns]', 'delimiter', ',', 'precision', 9);
 
 N = length(A);
 M = length(rows)/2;

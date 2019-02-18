@@ -34,6 +34,14 @@ int main(int argc, char** argv){
     /* Read the input Sparse Matrix, alongside with some further info */
     readCSV(argv[1], &h_A, &N, &M, &nT_Mat, &matlab_time);
 
+    printf("Input Data File Sample:\n");    
+    printf("nnz = %d\n", h_A.nnz);
+    for (int i=0;i<10;i++){
+        printf("h_A.csrVal: %f\n",h_A.csrVal[i]);
+        printf("h_A.csrRowPtr: %d\n",h_A.csrRowPtr[i]);
+        printf("h_A.csrColInd: %d\n",h_A.csrColInd[i]);
+    }
+
     /* Create the cuSPARSE handle */
     cusparseHandle_t handle = 0;
     CHECK_CUSPARSE(cusparseCreate(&handle));    
@@ -102,6 +110,8 @@ int main(int argc, char** argv){
 
                         /* Timer variable */
                         double first = cpuSecond();
+
+
     /* Perform the actual multiplication A * A = B */
     CHECK_CUSPARSE(cusparseScsrgemm(handle,
                         CUSPARSE_OPERATION_NON_TRANSPOSE, 

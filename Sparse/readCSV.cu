@@ -23,7 +23,7 @@ char *trim_space(char *in);
 int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matlab_time);
 // int findLines(char* fName);
 
-
+/*
 int main(int argc, char** argv){
 
     char* fName = argv[1];
@@ -46,7 +46,7 @@ int main(int argc, char** argv){
     
     return 0; 
 }
-
+*/
 
 int findLines(char* fName){
 
@@ -77,7 +77,7 @@ int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matl
 
     /* Constructing the full .csv file names */
     char* csvFileName;
-    csvFileName = malloc(1000*sizeof(char));
+    csvFileName = (char*)malloc(1000*sizeof(char));
     //                                                       B E     C A R E F U L
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Path to file: ~/PD_4/Data/  ! ! ! ! (Change this if data is stored elsewhere)
@@ -88,7 +88,7 @@ int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matl
     strcat(csvFileName, fName);    
 
     char* valFileName;
-    valFileName = malloc(1000*sizeof(char));
+    valFileName = (char*)malloc(1000*sizeof(char));
     strcat(valFileName, csvFileName);
     strcat(valFileName, "_validation_file.csv");
 
@@ -127,9 +127,9 @@ int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matl
     fclose(fp);
 
     /* Allocating memory to hold the struct of Sparse Matrix A */
-    A->csrVal = malloc ((A->nnz)*sizeof(float));
-    A->csrRowPtr = malloc (((*N)+1)*sizeof(int));
-    A->csrColInd = malloc ((A->nnz)*sizeof(int));
+    A->csrVal = (float*)malloc ((A->nnz)*sizeof(float));
+    A->csrRowPtr = (int*)malloc (((*N)+1)*sizeof(int));
+    A->csrColInd = (int*)malloc ((A->nnz)*sizeof(int));
 
     /* Reading the input data */
     fp = fopen(csvFileName, "r");

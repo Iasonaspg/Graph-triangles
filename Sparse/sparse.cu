@@ -31,8 +31,12 @@ int main(int argc, char** argv){
     csrFormat h_A, d_A, 
               h_B, d_B;
 
+    /* Create the struct of type coo Format to hold the Sparse Matrix A */
+    cooFormat h_A_COO, d_A_COO;
+    int* d_csrRowPtr_coo2csr;
+
     /* Read the input Sparse Matrix, alongside with some further info */
-    readCSV(argv[1], &h_A, &N, &M, &nT_Mat, &matlab_time);
+    readCSV(argv[1], &h_A, &h_A_COO, &N, &M, &nT_Mat, &matlab_time);
 
     printf("Input Data File Sample:\n");    
     printf("nnz = %d\n", h_A.nnz);
@@ -40,6 +44,14 @@ int main(int argc, char** argv){
         printf("h_A.csrVal: %f\n",h_A.csrVal[i]);
         printf("h_A.csrRowPtr: %d\n",h_A.csrRowPtr[i]);
         printf("h_A.csrColInd: %d\n",h_A.csrColInd[i]);
+    }
+
+    printf("COO: Input Data File Sample:\n");    
+    printf("nnz = %d\n", h_A_COO.nnz);
+    for (int i=0;i<10;i++){
+        printf("h_A_COO.cooVal: %f\n",h_A_COO.cooVal[i]);
+        printf("h_A_COO.cooRowInd: %d\n",h_A_COO.cooRowInd[i]);
+        printf("h_A_COO.cooColInd: %d\n",h_A_COO.cooColInd[i]);
     }
 
     /* Create the cuSPARSE handle */
@@ -51,6 +63,12 @@ int main(int argc, char** argv){
     CHECK_CUSPARSE(cusparseCreateMatDescr(&descrA));
     CHECK_CUSPARSE(cusparseSetMatType(descrA, CUSPARSE_MATRIX_TYPE_GENERAL));
     CHECK_CUSPARSE(cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO));
+
+    /* Construct a descriptor of the matrix A_COO */
+    cusparseMatDescr_t descrA_COO = 0;
+    CHECK_CUSPARSE(cusparseCreateMatDescr(&descrA_COO));
+    CHECK_CUSPARSE(cusparseSetMatType(descrA_COO, CUSPARSE_MATRIX_TYPE_GENERAL));
+    CHECK_CUSPARSE(cusparseSetMatIndexBase(descrA_COO, CUSPARSE_INDEX_BASE_ZERO));
 
     /* Construct a descriptor of the matrix B */
     cusparseMatDescr_t descrB = 0;
@@ -68,6 +86,45 @@ int main(int argc, char** argv){
     CUDA_CALL(cudaMemcpy(d_A.csrVal,    h_A.csrVal,    d_A.nnz * sizeof(float), cudaMemcpyHostToDevice));
     CUDA_CALL(cudaMemcpy(d_A.csrRowPtr, h_A.csrRowPtr, (N + 1) * sizeof(int)  , cudaMemcpyHostToDevice));
     CUDA_CALL(cudaMemcpy(d_A.csrColInd, h_A.csrColInd, d_A.nnz * sizeof(int)  , cudaMemcpyHostToDevice));
+
+    /* Allocate device memory to store the sparse COO representation of A */
+    d_A_COO.nnz = h_A_COO.nnz;
+    CUDA_CALL(cudaMalloc((void **)&(d_A_COO.cooVal),    sizeof(float) * d_A_COO.nnz));
+    CUDA_CALL(cudaMalloc((void **)&(d_A_COO.cooRowInd), sizeof(int) * d_A_COO.nnz));
+    CUDA_CALL(cudaMalloc((void **)&(d_csrRowPtr_coo2csr), sizeof(int) * (N + 1)));
+    CUDA_CALL(cudaMalloc((void **)&(d_A_COO.cooColInd), sizeof(int) * d_A_COO.nnz));
+
+    /* Copy the sparse COO representation of A from the Host to the Device */
+    CUDA_CALL(cudaMemcpy(d_A_COO.cooVal,    h_A_COO.cooVal,    d_A_COO.nnz * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_A_COO.cooRowInd, h_A_COO.cooRowInd, d_A_COO.nnz * sizeof(int)  , cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_A_COO.cooColInd, h_A_COO.cooColInd, d_A_COO.nnz * sizeof(int)  , cudaMemcpyHostToDevice));
+
+    CHECK_CUSPARSE(cusparseXcoo2csr(handle,
+                    d_A_COO.cooRowInd,
+                    d_A_COO.nnz,
+                    N,
+                    d_csrRowPtr_coo2csr,
+                    CUSPARSE_INDEX_BASE_ZERO ));
+
+    CUDA_CALL(cudaMemcpy(h_A_COO.cooRowInd, d_csrRowPtr_coo2csr, (N + 1) * sizeof(int), cudaMemcpyDeviceToHost));
+
+    printf("Input Data File Sample:\n");    
+    printf("nnz = %d\n", h_A.nnz);
+    for (int i=0;i<10;i++){
+        printf("h_A.csrVal: %f\n",h_A.csrVal[i]);
+        printf("h_A.csrRowPtr: %d\n",h_A.csrRowPtr[i]);
+        printf("h_A.csrColInd: %d\n",h_A.csrColInd[i]);
+    }
+
+    printf("COO2CSR: Input Data File Sample:\n");    
+    printf("nnz = %d\n", h_A_COO.nnz);
+    for (int i=0;i<10;i++){
+        printf("h_A_COO.cooVal: %f\n",h_A_COO.cooVal[i]);
+        printf("h_A_COO.cooRowInd: %d\n",h_A_COO.cooRowInd[i]);
+        printf("h_A_COO.cooColInd: %d\n",h_A_COO.cooColInd[i]);
+    }
+
+    return 0;
 
     int baseB;
     // nnzTotalDevHostPtr points to host memory

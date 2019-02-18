@@ -16,9 +16,17 @@ typedef struct Sparse_Matrix_in_CSR_format {
    int* 	csrColInd;
 }csrFormat;
 
+/* Struct for Sparse Matrix type in the Coordinates Sparse Format (COO) */
+typedef struct Sparse_Matrix_in_COO_format {
+   int 		nnz;
+   float* 	cooVal;
+   int* 	cooRowInd;
+   int* 	cooColInd;
+}cooFormat;
+
 #ifndef READ_CSV_H
 #define READ_CSV_H
 
-int readCSV(char* fName, struct Sparse_Matrix_in_CSR_format *A, int* N, int* M, int* nT_Mat, double* matlab_time);
+int readCSV(char* fName, csrFormat* A, cooFormat* A_COO, int* N, int* M, int* nT_Mat, double* matlab_time);
 
 #endif /* READ_CSV_H */

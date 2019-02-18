@@ -48,7 +48,7 @@ columns = columns - 1;
 
 fprintf( '   - Writing CSV has started\n');
 
-dlmwrite([folderPath csvFileName], [values rows columns]', 'delimiter', ',', 'precision', 9);
+dlmwrite([folderPath csvFileName], [values rows columns], 'delimiter', ',', 'precision', 9);
 
 N = length(A);
 M = length(rows)/2;

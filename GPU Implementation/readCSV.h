@@ -25,4 +25,14 @@ char *trim_space(char *in);
 int findLines(char* fName);
 void mulSparse(cooFormat* A, cooFormat* C, int N);
 
+#define CHECK(call) \
+{                    \
+    const cudaError_t error = call; \
+    if (error != cudaSuccess){       \
+        printf("Error: %s:%d, ", __FILE__, __LINE__);  \
+        printf("code:%d, reason: %s\n", error, cudaGetErrorString(error)); \
+        exit(1); \
+    } \
+} \
+
 #endif /* READ_CSV_H */

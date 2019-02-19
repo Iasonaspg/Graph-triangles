@@ -18,166 +18,175 @@
  #include "readCSV.h"
  
  
- __global__ void findTriangles(cooFormat C){
-     int index = threadIdx.x + blockIdx.x*blockDim.x;
-     int stride = blockDim.x * gridDim.x;
+__global__ void findTriangles(cooFormat A, cooFormat C){
+    int index = threadIdx.x + blockIdx.x*blockDim.x;
+    int stride = blockDim.x * gridDim.x;
  
-     float sum;
-     for (int i=index;i<20928;i+=stride){
-         sum += C.cooValA[i];
-     }
- 
-     printf("Triangles: %f\n",sum/6);
-     //for (int i=0;i<2;i++){
-     //    printf("Sample: %f\n",C.cooValA[i]);
-     //}
+    int sum;
+    for (int i=index;i<C.nnz;i+=stride){
+       int flag = 0;
+       for (int j=0;j<A.nnz;j++){
+           if (A.cooColIndA[j] == C.cooColIndA[i] && A.cooRowIndA[j] == C.cooColIndA[i]){
+               flag = 1;
+               break;
+           }
+       }
+       if (flag){
+           sum += C.cooValA[i];
+       }   
+    }
+     printf("Triangles: %d\n",sum);
+    //for (int i=0;i<2;i++){
+    //    printf("Sample: %f\n",C.cooValA[i]);
+    //}
  }
  
- int main(int argc, char** argv){
+int main(int argc, char** argv){
  
-     char* fName = argv[1];
-     int N, M, nT_Mat;
-     double matlab_time;
+    char* fName = argv[1];
+    int N, M, nT_Mat;
+    double matlab_time;
+
+    cooFormat A, C;
+
+    readCSV(fName, &A, &N, &M, &nT_Mat, &matlab_time);
+
+    printf("Input Data File Sample:\n");    
+    printf("nnz = %d\n", A.nnz);
+    for (int i=1000;i<1012;i++){
+        //printf("cooRowIndA: %d\n",A.cooRowIndA[i]);
+        //printf("cooColIndA: %d\n",A.cooColIndA[i]);
+        //printf("cooValA: %f\n",A.cooValA[i]);
+    }
+
+    printf("Validation File:\n N = %d, M = %d\n Matlab result was %d, produced in %lf\n", N, M, nT_Mat, matlab_time);
+
+    mulSparse(&A,&C,N);
+
+    findTriangles<<<1,1>>>(A,C);
+    CHECK(cudaPeekAtLastError());
+    CHECK(cudaDeviceSynchronize());
+
+    for (int i=0;i<1;i++){
+    printf("Sample: %d\n",C.nnz);
+    }
+    
+    return 0; 
+}
  
-     cooFormat A, C;
  
-     readCSV(fName, &A, &N, &M, &nT_Mat, &matlab_time);
+int findLines(char* fName){
  
-     printf("Input Data File Sample:\n");    
-     printf("nnz = %d\n", A.nnz);
-     for (int i=1000;i<1012;i++){
-         //printf("cooRowIndA: %d\n",A.cooRowIndA[i]);
-         //printf("cooColIndA: %d\n",A.cooColIndA[i]);
-         //printf("cooValA: %f\n",A.cooValA[i]);
-     }
+    FILE * fp;
+    char * line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    fp = fopen(fName, "r");
+    if (fp == NULL){
+        printf("Could not open file\n");
+        exit(EXIT_FAILURE);
+    }
+    
+    int i = 0;
+    while ((read = getline(&line, &len, fp)) != -1) {
+        i++;
+    }
+    fclose(fp);
+    return i;
+}
  
-     printf("Validation File:\n N = %d, M = %d\n Matlab result was %d, produced in %lf\n", N, M, nT_Mat, matlab_time);
- 
-     mulSparse(&A,&C,N);
- 
-     findTriangles<<<1,1>>>(C);
-     cudaDeviceSynchronize();
- 
-     for (int i=0;i<2;i++){
-         //printf("Sample: %f\n",C.cooValA[i]);
-     }
-     
-     return 0; 
- }
- 
- 
- int findLines(char* fName){
- 
-     FILE * fp;
-     char * line = NULL;
-     size_t len = 0;
-     ssize_t read;
- 
-     fp = fopen(fName, "r");
-     if (fp == NULL){
-         printf("Could not open file\n");
-         exit(EXIT_FAILURE);
-     }
-     
-     int i = 0;
-     while ((read = getline(&line, &len, fp)) != -1) {
-         i++;
-     }
-     fclose(fp);
-     return i;
- }
- 
- int readCSV(char* fName, cooFormat *A, int* N, int* M, int* nT_Mat, double* matlab_time){
-     FILE * fp;
-     char * line = NULL;
-     size_t len = 0;
-     ssize_t read;
-     long* tmp = (long*) malloc(3*sizeof(long));
- 
-     /* Constructing the full .csv file names */
-     char* csvFileName;
-     csvFileName = (char*) malloc(1000*sizeof(char));
-     //                                                       B E     C A R E F U L
-     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     // Path to file: ~/PD_4/Data/  ! ! ! ! (Change this if data is stored elsewhere)
-     strcpy(csvFileName,  "DIMACS10_");
-     // Do not change "DataDIMACS10_" unless you want to give it as input name alongside with (auto | great-britain_osm | delaunay_n22)
-     // every time
-     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     strcat(csvFileName, fName);    
- 
-     char* valFileName;
-     valFileName = (char*) malloc(1000*sizeof(char));
-     strcat(valFileName, csvFileName);
-     strcat(valFileName, "_validation_file.csv");
- 
-     strcat(csvFileName, ".csv");
- 
-     int leng = findLines(csvFileName);
- 
-     printf("Lines in the file are: %d\n",leng);   
- 
-     A->nnz = leng;
- 
-     /* Allocating memory to hold matrix A = arr */
-     A->cooValA = (float*) malloc (leng*sizeof(float));
-     A->cooRowIndA = (int*) malloc (leng*sizeof(int));
-     A->cooColIndA = (int*) malloc (leng*sizeof(int));
- 
-     /* Reading the input data */
-     fp = fopen(csvFileName, "r");
-     if (fp == NULL){
-         printf("Could not open file\n");
-         exit(EXIT_FAILURE);
-     }
- 
-     long i = 0;
-     while ((read = getline(&line, &len, fp)) != -1) {
-         // printf("%s", line);
-         split(line,",",tmp);
-         // printf("I: %d\n",i);
-         A->cooRowIndA[i] = tmp[0];
-         A->cooColIndA[i] = tmp[1];        
-         A->cooValA[i] = tmp[2];
-         // printf("A[%d]: %ld\n", j, A[j]);
-         
-         i++;
-     }
+int readCSV(char* fName, cooFormat *A, int* N, int* M, int* nT_Mat, double* matlab_time){
+    FILE * fp;
+    char * line = NULL;
+    size_t len = 0;
+    ssize_t read;
+    long* tmp = (long*) malloc(3*sizeof(long));
+
+    /* Constructing the full .csv file names */
+    char* csvFileName;
+    csvFileName = (char*) malloc(1000*sizeof(char));
+    //                                                       B E     C A R E F U L
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Path to file: ~/PD_4/Data/  ! ! ! ! (Change this if data is stored elsewhere)
+    strcpy(csvFileName,  "DIMACS10_");
+    // Do not change "DataDIMACS10_" unless you want to give it as input name alongside with (auto | great-britain_osm | delaunay_n22)
+    // every time
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    strcat(csvFileName, fName);    
+
+    char* valFileName;
+    valFileName = (char*) malloc(1000*sizeof(char));
+    strcat(valFileName, csvFileName);
+    strcat(valFileName, "_validation_file.csv");
+
+    strcat(csvFileName, ".csv");
+
+    int leng = findLines(csvFileName);
+
+    printf("Lines in the file are: %d\n",leng);   
+
+    A->nnz = leng;
+
+    /* Allocating memory to hold matrix A = arr */
+    A->cooValA = (float*) malloc (leng*sizeof(float));
+    A->cooRowIndA = (int*) malloc (leng*sizeof(int));
+    A->cooColIndA = (int*) malloc (leng*sizeof(int));
+
+    /* Reading the input data */
+    fp = fopen(csvFileName, "r");
+    if (fp == NULL){
+        printf("Could not open file\n");
+        exit(EXIT_FAILURE);
+    }
+
+    long i = 0;
+    while ((read = getline(&line, &len, fp)) != -1) {
+        // printf("%s", line);
+        split(line,",",tmp);
+        // printf("I: %d\n",i);
+        A->cooRowIndA[i] = tmp[0];
+        A->cooColIndA[i] = tmp[1];        
+        A->cooValA[i] = tmp[2];
+        // printf("A[%d]: %ld\n", j, A[j]);
+        
+        i++;
+    }
+/* Close file */
+    fclose(fp);
+
+    /* Reading the original matrix N and M, as well as 
+    the matlab result and time elapsed */
+    fp = fopen(valFileName, "r");
+    if (fp == NULL){
+        printf("Could not open file\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if( (read = getline(&line, &len, fp)) != -1 ) {
+        char* token = strtok(line, ",");
+        char* endPtr;
+
+        (*N) = strtoimax(token,&endPtr,10);
+        
+        token = strtok(NULL, ",");
+        
+        (*M) = strtoimax(token,&endPtr,10);
+
+        token = strtok(NULL, ",");
+
+        (*nT_Mat) = strtoimax(token,&endPtr,10);
+
+        token = strtok(NULL, ",");   
+
+        (*matlab_time) = atof(token);
+    }
+
     /* Close file */
-     fclose(fp);
- 
-     /* Reading the original matrix N and M, as well as 
-        the matlab result and time elapsed */
-     fp = fopen(valFileName, "r");
-     if (fp == NULL){
-         printf("Could not open file\n");
-         exit(EXIT_FAILURE);
-     }
- 
-     if( (read = getline(&line, &len, fp)) != -1 ) {
-         char* token = strtok(line, ",");
-         char* endPtr;
- 
-         (*N) = strtoimax(token,&endPtr,10);
-         
-         token = strtok(NULL, ",");
-         
-         (*M) = strtoimax(token,&endPtr,10);
- 
-         token = strtok(NULL, ",");
- 
-         (*nT_Mat) = strtoimax(token,&endPtr,10);
- 
-         token = strtok(NULL, ",");   
- 
-         (*matlab_time) = atof(token);
-     }
- 
-     /* Close file */
-     fclose(fp);
- 
-     return EXIT_SUCCESS;
- }
+    fclose(fp);
+
+    return EXIT_SUCCESS;
+}
  
  int split(char* str, char* delim, long* tmp){
      int i = 0;

@@ -9,6 +9,8 @@
 % AUTHORS
 %
 %   Dimitris Floros                         fcdimitr@auth.gr
+%   John Flionis
+%   Michail Iason Pavlidis
 %
 % VERSION
 %
@@ -27,7 +29,7 @@ close all
 basePath  = 'https://sparse.tamu.edu/mat';
 folderPath = './';
 groupName = 'DIMACS10';
-matName   = 'auto'; % auto|great-britain_osm|delaunay_n22
+matName   = 'delaunay_n12'; % auto|great-britain_osm|delaunay_n22
 
 %% (BEGIN)
 
@@ -63,13 +65,17 @@ A = Problem.A > 0;
 
 lines = lines - 1;
 columns = columns - 1;
-B = [lines columns values];
+B = [columns lines values];
 tr = transpose(B);
 
 fprintf( '   - Writing CSV has started\n');
 
-fileID = fopen(csvFileName,'w');
+fileID = fopen( [folderPath csvFileName], 'w');
 fprintf(fileID,'%d,%d,%d\n',tr);
+
+N = length(Problem.A)
+M = length(lines)/2;
+
 clear Problem;
 fclose(fileID);
 
@@ -85,7 +91,7 @@ matlab_time = toc(ticCnt);
 
 fprintf( '   - DONE: %d triangles found in %.5f sec\n', nT, matlab_time );
 
-dlmwrite([folderPath validationFileName], [nT matlab_time], 'delimiter', ',', 'precision', 9);
+dlmwrite([folderPath validationFileName], [N M nT matlab_time], 'delimiter', ',', 'precision', 9);
 
 %% (END)
 

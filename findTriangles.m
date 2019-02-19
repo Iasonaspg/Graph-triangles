@@ -27,7 +27,7 @@ close all
 basePath  = 'https://sparse.tamu.edu/mat';
 folderPath = '/home/johnfli/Code/PD_4/Data';
 groupName = 'DIMACS10';
-matName   = 'delaunay_n22'; % auto|great-britain_osm|delaunay_n22
+matName   = 'delaunay_n10'; % auto|great-britain_osm|delaunay_n22
 
 %% (BEGIN)
 
@@ -59,7 +59,7 @@ A = Problem.A > 0;
 
 %% SAVE SPARSE MATRIX INTO CSR FORMAT INTO .CSV FILE
    
-[rows, columns, values] = find(A);
+[columns, rows, values] = find(A);
 
 csrValA = values;
 csrRowPtrA = [0; full(cumsum(sum(A,2)))];

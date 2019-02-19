@@ -124,7 +124,22 @@ int main(int argc, char** argv){
         printf("h_A_COO.cooColInd: %d\n",h_A_COO.cooColInd[i]);
     }
 
-    return 0;
+    int i;
+    for(i=0;i<h_A.nnz;i++)
+    {
+        if ( (h_A.csrVal[i] != h_A_COO.cooVal[i]) || (h_A.csrColInd[i] != h_A_COO.cooColInd[i]) )
+            printf("Col ERROR\n");
+
+        if (i < N + 1)
+            if ( h_A.csrRowPtr[i] != h_A_COO.cooRowInd[i])
+                printf("Row ERROR\n");
+    }
+    printf("h_A.nnz = %d = %d = i\n", h_A.nnz, i);
+
+    /* Cleanup */
+    CUDA_CALL(cudaFree(d_csrRowPtr_coo2csr));
+    CUDA_CALL(cudaFree(d_A_COO.cooVal));    CUDA_CALL(cudaFree(d_A_COO.cooRowInd));     CUDA_CALL(cudaFree(d_A_COO.cooColInd));
+    free(h_A_COO.cooVal);                   free(h_A_COO.cooRowInd);                    free(h_A_COO.cooColInd);
 
     int baseB;
     // nnzTotalDevHostPtr points to host memory
@@ -162,12 +177,11 @@ int main(int argc, char** argv){
     }
 
     /* Allocate device memory to store the rest of the sparse CSR representation of B */
-    CUDA_CALL(cudaMalloc((void**)&d_B.csrColInd, sizeof(int) * d_B.nnz));
     CUDA_CALL(cudaMalloc((void**)&d_B.csrVal,    sizeof(float) * d_B.nnz));
+    CUDA_CALL(cudaMalloc((void**)&d_B.csrColInd, sizeof(int) * d_B.nnz));
 
                         /* Timer variable */
                         double first = cpuSecond();
-
 
     /* Perform the actual multiplication A * A = B */
     CHECK_CUSPARSE(cusparseScsrgemm(handle,
@@ -195,7 +209,7 @@ int main(int argc, char** argv){
                         printf("GPU Sparse Matrices Multiplication wall clock time: %fs\n",cpuSecond()-first);
 
 
-    /* Allocate memory on host to hold the sparse CSR representation of B */
+    /* Allocate memory onto the Host to hold the sparse CSR representation of B */
     h_B.nnz = d_B.nnz;
     h_B.csrVal = (float*)malloc ((h_B.nnz) * sizeof(float));
     h_B.csrRowPtr = (int*)malloc ((N + 1) * sizeof(int));

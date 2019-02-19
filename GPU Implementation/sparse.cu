@@ -158,7 +158,8 @@ void mulSparse(cooFormat* A, cooFormat* C, int N){
     int* d_C_RowPtr;
     cudaMallocManaged(&d_C_RowPtr,(N+1)*sizeof(*d_C_RowPtr));
 
-    int nnzC = 0;
+    int nnzC;
+    //cudaMallocManaged(&nnzC,sizeof(int));
     cusparseOperation_t transA = CUSPARSE_OPERATION_NON_TRANSPOSE;
     cusparseXcsrgemmNnz(handle,transA,transA,N,N,N,descrA,nnzA,csrRowPtrA,devCol,descrA,nnzA,csrRowPtrA,devCol,descrC,d_C_RowPtr,&nnzC);
 
@@ -167,14 +168,20 @@ void mulSparse(cooFormat* A, cooFormat* C, int N){
 
     float* d_C;
     int *d_C_ColIndices;
-    cudaMallocManaged(&d_C, nnzC*sizeof(*d_C));
-    cudaMallocManaged(&d_C_ColIndices, nnzC * sizeof(*d_C_ColIndices));
+    cudaMallocManaged(&d_C, (nnzC)*sizeof(*d_C));
+    cudaMallocManaged(&d_C_ColIndices, (nnzC) * sizeof(*d_C_ColIndices));
     double start = cpuSecond();
     cusparseScsrgemm(handle,transA,transA,N,N,N,descrA,nnzA,devVal,csrRowPtrA,devCol,descrA,nnzA,devVal,csrRowPtrA,devCol,descrC,d_C,d_C_RowPtr,d_C_ColIndices);
-    printf("Time elapsed for generating points: %f seconds\n",cpuSecond()-start);
+    printf("Time elapsed for multiplication: %f seconds\n",cpuSecond()-start);
 
+    int* cooRowC;
+    cudaMallocManaged(&cooRowC,(nnzC)*sizeof(int));
+
+    cusparseXcsr2coo(handle,d_C_RowPtr,(nnzC),N,cooRowC,CUSPARSE_INDEX_BASE_ZERO);
+
+    printf("timi: %d\n",(nnzC));
     C->nnz = nnzC;
     C->cooValA = d_C;
-    C->cooRowIndA = d_C_RowPtr;
+    C->cooRowIndA = cooRowC;
     C->cooColIndA =  d_C_ColIndices;
 }

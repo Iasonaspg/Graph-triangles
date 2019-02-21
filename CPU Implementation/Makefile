@@ -11,7 +11,7 @@ GCC = gcc
 
 CFLAGS = -O3
 
-PROJECT_NAME = cpu_triangles
+PROJECT_NAME = trianglesCPU
 
 all: trianglesCPU.o validation.o readCSV.o
 	$(GCC) $(CFLAGS) $^ -o $(PROJECT_NAME)

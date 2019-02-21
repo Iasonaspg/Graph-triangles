@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * readCSV.c -- readCSV function for reading the input from
+ * readCSV.h -- readCSV function for reading the input from
  *              a .csv file
  *
  * Michail Iason Pavlidis <michailpg@ece.auth.gr>
@@ -28,5 +28,6 @@ typedef struct Sparse_Matrix_in_COO_format {
 #define READ_CSV_H
 
 int readCSV(char* fName, csrFormat* A, cooFormat* A_COO, int* N, int* M, int* nT_Mat, double* matlab_time);
+int readCSV_B(char* fName, cooFormat* B);
 
 #endif /* READ_CSV_H */

@@ -21,9 +21,8 @@ int split_line_int(char* str, char* delim, int* args);
 int split_line_float(char* str, char* delim, float* args);
 char *trim_space(char *in);
 int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matlab_time);
-// int findLines(char* fName);
 
-
+/*
 int main(int argc, char** argv){
 
     char* fName = argv[1];
@@ -46,28 +45,7 @@ int main(int argc, char** argv){
     
     return 0; 
 }
-
-
-int findLines(char* fName){
-
-    FILE * fp;
-    char * line = NULL;
-    size_t len = 0;
-    ssize_t read;
-
-    fp = fopen(fName, "r");
-    if (fp == NULL){
-        printf("Could not open file\n");
-        exit(EXIT_FAILURE);
-    }
-    
-    int i = 0;
-    while ((read = getline(&line, &len, fp)) != -1) {
-        i++;
-    }
-    fclose(fp);
-    return i;
-}
+*/
 
 int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matlab_time){
     FILE * fp;
@@ -76,8 +54,9 @@ int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matl
     ssize_t read;
 
     /* Constructing the full .csv file names */
-    char* csvFileName;
-    csvFileName = malloc(1000*sizeof(char));
+    char *csvFileName, *valFileName;
+    csvFileName = (char*)malloc(1000*sizeof(char));
+    valFileName = (char*)malloc(1000*sizeof(char));
     //                                                       B E     C A R E F U L
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Path to file: ~/PD_4/Data/  ! ! ! ! (Change this if data is stored elsewhere)
@@ -87,8 +66,6 @@ int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matl
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     strcat(csvFileName, fName);    
 
-    char* valFileName;
-    valFileName = malloc(1000*sizeof(char));
     strcat(valFileName, csvFileName);
     strcat(valFileName, "_validation_file.csv");
 
@@ -127,9 +104,9 @@ int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matl
     fclose(fp);
 
     /* Allocating memory to hold the struct of Sparse Matrix A */
-    A->csrVal = malloc ((A->nnz)*sizeof(float));
-    A->csrRowPtr = malloc (((*N)+1)*sizeof(int));
-    A->csrColInd = malloc ((A->nnz)*sizeof(int));
+    A->csrVal = (float*)malloc ((A->nnz)*sizeof(float));
+    A->csrRowPtr = (int*)malloc (((*N)+1)*sizeof(int));
+    A->csrColInd = (int*)malloc ((A->nnz)*sizeof(int));
 
     /* Reading the input data */
     fp = fopen(csvFileName, "r");
@@ -138,15 +115,14 @@ int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matl
         exit(EXIT_FAILURE);
     }
 
-     if ((read = getline(&line, &len, fp)) != -1)
+    if ((read = getline(&line, &len, fp)) != -1)
         split_line_float(line,",",A->csrVal);
-        // printf("%s", line);
-     if ((read = getline(&line, &len, fp)) != -1)
+
+    if ((read = getline(&line, &len, fp)) != -1)
         split_line_int(line,",",A->csrRowPtr);
-        // printf("I: %d\n",i);
-     if ((read = getline(&line, &len, fp)) != -1)
+
+    if ((read = getline(&line, &len, fp)) != -1)
         split_line_int(line,",",A->csrColInd);
-        // printf("A[%d]: %d\n", j, A[j]);
         
     /* Close file */
     fclose(fp);
@@ -161,9 +137,9 @@ int split_line_int(char* str, char* delim, int* tmp){
     char* endPtr;
     while (token != NULL) {
         strNum = trim_space(token);
-        // printf("Number: %d\n", strtoimax(strNum,&endPtr,10));
+
         tmp[i++] = strtoimax(strNum,&endPtr,10);
-        // printf("Number: %d\n", tmp[i-1]);
+
         token = strtok(NULL, delim);   
     }
     return i;
@@ -172,13 +148,10 @@ int split_line_int(char* str, char* delim, int* tmp){
 int split_line_float(char* str, char* delim, float* tmp){
     int i = 0;
     char* token = strtok(str, delim);
-    // char* strNum;
-    // char* endPtr;
     while (token != NULL) {
-        // strNum = trim_space(token);
-        // printf("Number: %d\n", strtoimax(strNum,&endPtr,10));
+
         tmp[i++] = atof(token);
-        // printf("Number: %d\n", tmp[i-1]);
+
         token = strtok(NULL, delim);   
     }
     return i;

@@ -16,46 +16,44 @@
 #include "readCSV.h"
 #include "validation.h"
 
-int findTriangles(struct Sparse_Matrix_in_CSR_format A);
+int findTriangles(csrFormat* A, int N);
+
+double cpuSecond() {
+    struct timeval tp;
+    gettimeofday(&tp,NULL);
+    return ((double)tp.tv_sec + (double)tp.tv_usec*1.e-6);
+}
 
 int main (int argc, char **argv) {
 
   int nT, nT_Mat, N, M;
+  double matlab_time;
 
-  /* Variables to hold execution time */
-  struct timeval startwtime, endwtime;
-  double cpu_time, matlab_time;
-
-  struct Sparse_Matrix_in_CSR_format A;
+  csrFormat A;
 
   /* Parsing input arguments */
-  if (argc < 4) {
-    // N = 1<<atoi(argv[1]);  // Not sure if needed
-    // M = 1<<atoi(argv[2]);  // Not sure if needed
+  if (argc == 2) 
     readCSV(argv[1], &A, &N, &M, &nT_Mat, &matlab_time);
-  } else {
+  else {
     printf("Usage: ./triangles <CSVfileName>\n"); // <N> <M>
-    // printf(" where <N> is exp of number of Nodes in Graph\n");
-    // printf(" where <M> is exp of number of Edges in Graph\n");
-    printf(" where <CSVfileName.csv> is the name of the input data file (auto | great-britain_osm | delaunay_n22)\n");
+    printf(" where <CSVfileName.csv> is the name of the input data file (auto | great-britain_osm | delaunay_n22 | delaunay_n10)\n");
     printf("No need for suffix '.csv'\n");
     exit(1);
   }
 
-            gettimeofday (&startwtime, NULL);
-  nT = findTriangles(A);
-            gettimeofday (&endwtime, NULL);
+                        /* Timer variable */
+                        double timer = cpuSecond();
+  nT = findTriangles(&A, N);
+                        /* Timer variable */
+                        timer = cpuSecond()-timer;
 
 
   /* Validating the result */
   int pass = validation(nT, nT_Mat);
   assert(pass != 0);
 
-  cpu_time = (double)((endwtime.tv_usec - startwtime.tv_usec)/1.0e6
-                      + endwtime.tv_sec - startwtime.tv_sec);
-
-  /* Print execution time */
-  printf("CPU Implementation wall clock time: %f sec\n", cpu_time);
+  /* Timer display */
+  printf("CPU number of triangles nT: %d, Wall clock time: %fs ( < %lf ( Matlab Time ) )\n", nT, timer, matlab_time);
 
             /* File to keep the results */
             FILE *fp;
@@ -64,11 +62,11 @@ int main (int argc, char **argv) {
               perror("Failed: Opening file Failed\n");
               return 1;
             }
-            fprintf(fp, "%f\n", cpu_time);
+            fprintf(fp, "%f\n", timer);
             fclose(fp);
 
   /* Cleanup */
-  // free(A);
+  free(A.csrVal);       free(A.csrRowPtr);      free(A.csrColInd);
   
   /* Exit */
   return 0;
@@ -76,315 +74,41 @@ int main (int argc, char **argv) {
 
 
 /* Function that finds the number of triangles formed in the graph */
-int findTriangles(struct Sparse_Matrix_in_COO_format A)
+int findTriangles(csrFormat* A, int N)
 {
-
-  // int *C;
   int nT = 0;
+  for (int row = 0; row < N; row++) {
 
-  // Allocating memory for the C matrix
-  // C = (int *) malloc( N * N * sizeof(int) );
+      for (int j = A->csrRowPtr[row]; j < A->csrRowPtr[row+1]; j++) {
 
-    int apos, bpos; 
-    int len = A.nnz;
+          int col = A->csrColInd[j];
 
-    // iterate over all elements of A 
-    for (apos = 0; apos < len;) { 
+          // [row, col] = position of 1 horizontally
+          int beginPtr_csr_row = A->csrRowPtr[row];
+          int beginPtr_csc_col = A->csrRowPtr[col];
+          for (int k = beginPtr_csc_col; k < A->csrRowPtr[col+1]; k++) {
+                  
+              int csc_row = A->csrColInd[k];
+              int csc_val = A->csrVal[k];
+              // [csr_row, k] = position of 1 vertically
 
-      // current row of result matrix 
-      int r = A.csrRowPtrA[apos]; 
+              for (int l = beginPtr_csr_row; l < A->csrRowPtr[row+1]; l++) {
+    
+                  int csr_col = A->csrColInd[l];
+                  int csr_val = A->csrVal[l];
 
-      // iterate over all elements of A again 
-      for (bpos = 0; bpos < len;) { 
+                  if ( csc_row == csr_col )
+                      nT += csr_val * csc_val; 
+                  else if ( csr_col > csc_row ) {
+                      beginPtr_csr_row = l;
+                      break;
+                  }
 
-        // current column of result matrix 
-        int c = A.csrColIndA[bpos]; 
-
-        // temporary pointers created to add all 
-        // multiplied values to obtain current 
-        // element of result matrix 
-        int tempa = apos; 
-        int tempb = bpos; 
-
-        int sum = 0; 
-
-        // iterate over all elements with 
-        // same row and col value 
-        // to calculate result[r] 
-        while (tempa < len && A.csrRowPtrA[apos] == r 
-          && tempb < len && A.csrColIndA[bpos] == c) { 
-
-          /* ( Hadamard Optimization ) */
-          if (A.csrValA[tempa] != 0) {
-            if (A.csrColIndA[tempa] < A.csrRowPtrA[tempb]) 
-
-              // skip a 
-              tempa++; 
-
-            else if (A.csrColIndA[tempa] > A.csrRowPtrA[tempb]) 
-
-              // skip b 
-              tempb++; 
-            else
-              // same col, so multiply and increment 
-              sum += A.csrValA[tempa++] * A.csrValA[tempb++]; 
-
-            }
-          else {
-            tempa++;
-            tempb++;
+              }
           }
-        } 
-        // add sum to the total nT,
-        // without storing the value anywhere
-        nT += sum;
-
-        while (bpos < len && A.csrColIndA[bpos] == c) 
-
-          // jump to next column 
-          bpos++; 
-      } 
-
-      while (apos < len && A.csrRowPtrA[apos] == r) 
-
-        // jump to next row 
-        apos++; 
-    } 
+      }
+  }
 
   // nT = (1/6) * nT;
   return nT/6;
 }
-
-/*
-  public void add(sparse_matrix b) 
-  { 
-
-      int apos = 0, bpos = 0; 
-      sparse_matrix result = new sparse_matrix(row, col); 
-
-      while (apos < len && bpos < b.len) { 
-
-        // if b's row and col is smaller 
-        if (data[apos,0] > b.data[bpos,0] || 
-        (data[apos,0] == b.data[bpos,0] && 
-        data[apos,1] > b.data[bpos,1])) 
-
-        { 
-
-          // insert smaller value into result 
-          result.insert(b.data[bpos,0], 
-                b.data[bpos,1], 
-                b.data[bpos,2]); 
-
-          bpos++; 
-        } 
-
-        // if a's row and col is smaller 
-        else if (data[apos,0] < b.data[bpos,0] || 
-        (data[apos,0] == b.data[bpos,0] && 
-        data[apos,1] < b.data[bpos,1])) 
-
-        { 
-
-          // insert smaller value into result 
-          result.insert(data[apos,0], 
-                data[apos,1], 
-                data[apos,2]); 
-
-          apos++; 
-        } 
-
-        else { 
-
-          // add the values as row and col is same 
-          int addedval = data[apos,2] + b.data[bpos,2]; 
-
-          if (addedval != 0) 
-            result.insert(data[apos,0], 
-                  data[apos,1], 
-                  addedval); 
-          // then insert 
-          apos++; 
-          bpos++; 
-        } 
-      } 
-
-      // insert remaining elements 
-      while (apos < len) 
-        result.insert(data[apos,0], 
-              data[apos,1], 
-              data[apos++,2]); 
-
-      while (bpos < b.len) 
-        result.insert(b.data[bpos,0], 
-              b.data[bpos,1], 
-              b.data[bpos++,2]); 
-
-      // print result 
-      result.print(); 
-  } 
-
-  public sparse_matrix transpose() 
-  { 
-
-    // new matrix with inversed row X col 
-    sparse_matrix result = new sparse_matrix(col, row); 
-
-    // same number of elements 
-    result.len = len; 
-
-    // to count number of elements in each column 
-    int[] count = new int[col + 1]; 
-
-    // initialize all to 0 
-    for (int i = 1; i <= col; i++) 
-      count[i] = 0; 
-
-    for (int i = 0; i < len; i++) 
-      count[data[i,1]]++; 
-
-    int[] index = new int[col + 1]; 
-
-    // to count number of elements having col smaller 
-    // than particular i 
-
-    // as there is no col with value < 1 
-    index[1] = 0; 
-
-    // initialize rest of the indices 
-    for (int i = 2; i <= col; i++) 
-
-      index[i] = index[i - 1] + count[i - 1]; 
-
-    for (int i = 0; i < len; i++) { 
-
-      // insert a data at rpos and increment its value 
-      int rpos = index[data[i,1]]++; 
-
-      // transpose row=col 
-      result.data[rpos,0] = data[i,1]; 
-
-      // transpose col=row 
-      result.data[rpos,1] = data[i,0]; 
-
-      // same value 
-      result.data[rpos,2] = data[i,2]; 
-    } 
-
-    // the above method ensures 
-    // sorting of transpose matrix 
-    // according to row-col value 
-    return result; 
-  } 
-
-  public void multiply(sparse_matrix b) 
-  { 
-
-    if (col != b.row) { 
-
-      // Invalid muliplication 
-      System.Console.WriteLine("Can't multiply, "
-              + "Invalid dimensions"); 
-
-      return; 
-    } 
-
-    // transpose b to compare row 
-    // and col values and to add them at the end 
-    b = b.transpose(); 
-    int apos, bpos; 
-
-    // result matrix of dimension row X b.col 
-    // however b has been transposed, hence row X b.row 
-    sparse_matrix result = new sparse_matrix(row, b.row); 
-
-    // iterate over all elements of A 
-    for (apos = 0; apos < len;) { 
-
-      // current row of result matrix 
-      int r = data[apos,0]; 
-
-      // iterate over all elements of B 
-      for (bpos = 0; bpos < b.len;) { 
-
-        // current column of result matrix 
-        // data[,0] used as b is transposed 
-        int c = b.data[bpos,0]; 
-
-        // temporary pointers created to add all 
-        // multiplied values to obtain current 
-        // element of result matrix 
-        int tempa = apos; 
-        int tempb = bpos; 
-
-        int sum = 0; 
-
-        // iterate over all elements with 
-        // same row and col value 
-        // to calculate result[r] 
-        while (tempa < len && data[tempa,0] == r 
-          && tempb < b.len && b.data[tempb,0] == c) { 
-
-          if (data[tempa,1] < b.data[tempb,1]) 
-
-            // skip a 
-            tempa++; 
-
-          else if (data[tempa,1] > b.data[tempb,1]) 
-
-            // skip b 
-            tempb++; 
-          else
-
-            // same col, so multiply and increment 
-            sum += data[tempa++,2] * b.data[tempb++,2]; 
-        } 
-
-        // insert sum obtained in result[r] 
-        // if its not equal to 0 
-        if (sum != 0) 
-          result.insert(r, c, sum); 
-
-        while (bpos < b.len && b.data[bpos,0] == c) 
-
-          // jump to next column 
-          bpos++; 
-      } 
-
-      while (apos < len && data[apos,0] == r) 
-
-        // jump to next row 
-        apos++; 
-    } 
-
-    result.print(); 
-  } 
-
-  public static void Main() 
-  { 
-
-    // create two sparse matrices and insert values 
-    sparse_matrix a = new sparse_matrix(4, 4); 
-    sparse_matrix b = new sparse_matrix(4, 4); 
-
-    a.insert(1, 2, 10); 
-    a.insert(1, 4, 12); 
-    a.insert(3, 3, 5); 
-    a.insert(4, 1, 15); 
-    a.insert(4, 2, 12); 
-    b.insert(1, 3, 8); 
-    b.insert(2, 4, 23); 
-    b.insert(3, 3, 9); 
-    b.insert(4, 1, 20); 
-    b.insert(4, 2, 25); 
-
-    // Output result 
-    System.Console.WriteLine("Addition: "); 
-    a.add(b); 
-    System.Console.WriteLine("\nMultiplication: "); 
-    a.multiply(b); 
-    System.Console.WriteLine("\nTranspose: "); 
-    sparse_matrix atranspose = a.transpose(); 
-    atranspose.print(); 
-  }
-  */

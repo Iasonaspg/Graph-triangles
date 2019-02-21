@@ -71,6 +71,66 @@ int findLines(char* fName){
     return i;
 }
 
+int readCSV_B(char* fName, cooFormat* B){
+
+    FILE * fp;
+    char * line = NULL;
+    size_t len = 0;
+    ssize_t read;
+
+    /* Constructing the full .csv file names */
+    char *csvFileName;
+    csvFileName = (char*)malloc(1000*sizeof(char));
+    //                                                       B E     C A R E F U L
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    // Path to file: ~/PD_4/Data/  ! ! ! ! (Change this if data is stored elsewhere)
+    strcpy(csvFileName,  "/home/johnfli/Code/PD_4/Data/DataDIMACS10_");
+    // Do not change "DataDIMACS10_" unless you want to give it as input name aintside with (auto | great-britain_osm | delaunay_n22)
+    // every time
+    // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    strcat(csvFileName, fName);    
+    strcat(csvFileName, "_B_COO.csv"); 
+
+    /* Allocating memory to hold the struct of Sparse Matrix B */
+    B->cooVal = (float*)malloc ((B->nnz)*sizeof(float));
+    B->cooRowInd = (int*)malloc ((B->nnz)*sizeof(int));
+    B->cooColInd = (int*)malloc ((B->nnz)*sizeof(int));
+
+    /* Reading the input data in COO Format */
+    fp = fopen(csvFileName, "r");
+    if (fp == NULL){
+        printf("Could not open file\n");
+        exit(EXIT_FAILURE);
+    }
+
+    char* token;
+    char* endPtr;
+
+    int i = 0;
+    while ((read = getline(&line, &len, fp)) != -1){
+        
+        token = strtok(line, ",");
+
+         B->cooVal[i] = atof(token);
+
+        token = strtok(NULL, ",");
+
+        B->cooRowInd[i] = strtoimax(token,&endPtr,10);        
+
+        token = strtok(NULL, ",");
+
+        B->cooColInd[i] = strtoimax(token,&endPtr,10);
+
+        i++;
+
+    }
+        
+    /* Close file */
+    fclose(fp);
+
+    return EXIT_SUCCESS;    
+}
+
 int readCSV(char* fName, csrFormat* A, cooFormat* A_COO, int* N, int* M, int* nT_Mat, double* matlab_time){
 
     FILE * fp;
@@ -144,13 +204,13 @@ int readCSV(char* fName, csrFormat* A, cooFormat* A_COO, int* N, int* M, int* nT
         exit(EXIT_FAILURE);
     }
 
-     if ((read = getline(&line, &len, fp)) != -1)
+    if ((read = getline(&line, &len, fp)) != -1)
         split_line_float(line,",",A->csrVal);
 
-     if ((read = getline(&line, &len, fp)) != -1)
+    if ((read = getline(&line, &len, fp)) != -1)
         split_line_int(line,",",A->csrRowPtr);
 
-     if ((read = getline(&line, &len, fp)) != -1)
+    if ((read = getline(&line, &len, fp)) != -1)
         split_line_int(line,",",A->csrColInd);
         
     /* Close file */

@@ -1,13 +1,13 @@
 /************************************************************************************
  *
- * trianglesCPU.cu (.c) -- The CPU implementation of the triangle finder algorithm
- *
- * Reference: https://www.geeksforgeeks.org/operations-sparse-matrices/
+ * trianglesCPU.cu (.c) -- The CPU implementation for the number of triangles (nT) 
+ *                         finder algorithm
  *
  * Michail Iason Pavlidis <michailpg@ece.auth.gr>
  * John Flionis <iflionis@auth.gr>
  *
  ************************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -16,8 +16,10 @@
 #include "readCSV.h"
 #include "validation.h"
 
+/* nT Calculator Function */
 int findTriangles(csrFormat* A, int N);
 
+/* Timer Function */
 double cpuSecond() {
     struct timeval tp;
     gettimeofday(&tp,NULL);
@@ -32,10 +34,10 @@ int main (int argc, char **argv) {
   csrFormat A;
 
   /* Parsing input arguments */
-  if (argc == 2) 
+  if ( argc == 2 ) 
     readCSV(argv[1], &A, &N, &M, &nT_Mat, &matlab_time);
   else {
-    printf("Usage: ./triangles <CSVfileName>\n"); // <N> <M>
+    printf("Usage: ./trianglesCPU <CSVfileName>\n"); // <N> <M>
     printf(" where <CSVfileName.csv> is the name of the input data file (auto | great-britain_osm | delaunay_n22 | delaunay_n10)\n");
     printf("No need for suffix '.csv'\n");
     exit(1);
@@ -44,7 +46,7 @@ int main (int argc, char **argv) {
                         /* Timer variable */
                         double timer = cpuSecond();
   nT = findTriangles(&A, N);
-                        /* Timer variable */
+                        /* Calculate elapsed time */
                         timer = cpuSecond()-timer;
 
 
@@ -53,16 +55,16 @@ int main (int argc, char **argv) {
   assert(pass != 0);
 
   /* Timer display */
-  printf("CPU number of triangles nT: %d, Wall clock time: %fs ( < %lf ( Matlab Time ) )\n", nT, timer, matlab_time);
+  printf("CPU number of triangles nT: %d, Wall clock time: %lfs ( < %lf ( Matlab Time ) )\n", nT, timer, matlab_time);
 
-            /* File to keep the results */
+            /* Write the results into file */
             FILE *fp;
             fp = fopen("CPU_Results.txt", "a");
             if ( fp == NULL ) {
               perror("Failed: Opening file Failed\n");
               return 1;
             }
-            fprintf(fp, "%f\n", timer);
+            fprintf(fp, "%lf\n", timer);
             fclose(fp);
 
   /* Cleanup */
@@ -98,7 +100,7 @@ int findTriangles(csrFormat* A, int N)
                   int csr_val = A->csrVal[l];
 
                   if ( csc_row == csr_col )
-                      nT += csr_val * csc_val; 
+                      nT += (int)(csr_val * csc_val); 
                   else if ( csr_col > csc_row ) {
                       beginPtr_csr_row = l;
                       break;

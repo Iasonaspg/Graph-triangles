@@ -24,6 +24,7 @@ int split(char* str, char* delim, long* args);
 char *trim_space(char *in);
 int findLines(char* fName);
 void mulSparse(cooFormat* A, cooFormat* C, int N);
+double cpuSecond();
 
 #define CHECK(call) \
 {                    \

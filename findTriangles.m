@@ -4,7 +4,6 @@
 %   Download a graph from Sparse Matrix Collection and count the number of
 %   triangles.
 %
-
 %
 % AUTHORS
 %
@@ -29,11 +28,7 @@ close all
 basePath  = 'https://sparse.tamu.edu/mat';
 folderPath = '/home/johnfli/Code/PD_4/Data';
 groupName = 'DIMACS10';
-<<<<<<< HEAD
-matName   = 'delaunay_n12'; % auto|great-britain_osm|delaunay_n22
-=======
 matName   = 'delaunay_n10'; % auto|great-britain_osm|delaunay_n22
->>>>>>> origin/john
 
 %% (BEGIN)
 
@@ -67,22 +62,6 @@ A = Problem.A > 0;
    
 [columns, rows, values] = find(A);
 
-<<<<<<< HEAD
-[lines, columns, values] = find(A);
-
-lines = lines - 1;
-columns = columns - 1;
-B = [columns lines values];
-tr = transpose(B);
-
-fprintf( '   - Writing CSV has started\n');
-
-fileID = fopen( [folderPath csvFileName], 'w');
-fprintf(fileID,'%d,%d,%d\n',tr);
-
-N = length(Problem.A)
-M = length(lines)/2;
-=======
 csrValA = values;
 csrRowPtrA = [0; full(cumsum(sum(A,2)))];
 csrColIndA = columns - 1;
@@ -95,7 +74,6 @@ dlmwrite([folderPath csvFileName], csrColIndA', '-append', 'delimiter', ',', 'pr
 
 N = length(A);
 M = length(rows)/2;
->>>>>>> origin/john
 
 clear Problem;
 
@@ -111,14 +89,10 @@ matlab_time = toc(ticCnt);
 
 fprintf( '   - DONE: %d triangles found in %.5f sec\n', nT, matlab_time );
 
-<<<<<<< HEAD
-dlmwrite([folderPath validationFileName], [N M nT matlab_time], 'delimiter', ',', 'precision', 9);
-=======
 %% SAVE RESULTS INTO VALIDATION FILE
 
 dlmwrite([folderPath validationFileName], [N M nT matlab_time], 'delimiter', ',', 'precision', 9);
 
->>>>>>> origin/john
 
 %% (END)
 

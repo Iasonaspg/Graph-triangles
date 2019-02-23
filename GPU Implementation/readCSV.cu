@@ -8,18 +8,75 @@
  *
  **********************************************************************/
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>  
-#include <inttypes.h>
-#include <errno.h>
-#include <math.h>
-#include "readCSV.h"
+ #include <stdio.h>
+ #include <stdlib.h>
+ #include <string.h>
+ #include <ctype.h>  
+ #include <inttypes.h>
+ #include <errno.h>
+ #include <math.h>
+ #include "readCSV.h"
+ 
+ 
+__global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
+    long index = threadIdx.x + blockIdx.x*blockDim.x;
+    int tid = threadIdx.x;
+    long stride = blockDim.x * gridDim.x;
+    //printf("To A: %d\n",A.nnz);
+   
+    *sum = 0;
+    // __shared__ float totalSum[1024];
+    // totalSum[tid] = C.cooValA[index];
+    // if (threadIdx.x == 0){
+    //     for (int k=0;k<9;k++){
+    //         printf("Times: %")
+    //     }
+    // }
+    // __syncthreads();
+    
+    // for (int s=blockDim.x/2; s>0; s>>=1) {
+    //     if (tid < s) {
+    //         totalSum[tid] += totalSum[tid + s];
+    //     }
+    //     __syncthreads();
+    // }
 
+    
+    for (long i=index;i<C.nnz;i+=stride){
+       for (int j=0;j<A.nnz;j++){
+           if ((A.cooColIndA[j] == C.cooColIndA[i]) && (A.cooRowIndA[j] == C.cooRowIndA[i])){
+               atomicAdd(counter,1);
+               atomicAdd(sum,C.cooValA[i]);
+               break;
+           }
+       }
+       __syncthreads();
+    }
+    
+    __syncthreads();
+    if (threadIdx.x == 0 && blockIdx.x == 0){
+        printf("Triangles on GPU: %d\n",sum[0]/6);
+        printf("Mphka: %d\n",*counter);
+    }
+    
+ }
 
+ void findTrianglesCPU(cooFormat* A, cooFormat* C){
+    int sum = 0;
+    for (int i=0;i<C->nnz;i++){
+       for (int j=0;j<A->nnz;j++){
+           if ((A->cooColIndA[j] == C->cooColIndA[i]) && (A->cooRowIndA[j] == C->cooRowIndA[i])){
+               //atomicAdd(&sum,C.cooValA[i]);
+               sum += C->cooValA[i];
+               break;
+           }
+       }
+    }
+    printf("Triangles on CPU: %d\n",sum/6);
+ }
+ 
 int main(int argc, char** argv){
-
+ 
     char* fName = argv[1];
     int N, M, nT_Mat;
     double matlab_time;
@@ -40,16 +97,45 @@ int main(int argc, char** argv){
 
     mulSparse(&A,&C,N);
 
-    for (int i=0;i<10;i++){
-        printf("Sample: %f\n",C.cooValA[i]);
-    }
+    float* devVal;
+    int* devCol, *devRow;
+    int nnzA = A.nnz;
+    cudaMallocManaged(&devVal,nnzA*sizeof(float));
+    cudaMallocManaged(&devCol,nnzA*sizeof(int));
+    cudaMallocManaged(&devRow,nnzA*sizeof(int));
+    cudaMemcpy(devVal,A.cooValA,nnzA*sizeof(float),cudaMemcpyHostToDevice);
+    cudaMemcpy(devCol,A.cooColIndA,nnzA*sizeof(int),cudaMemcpyHostToDevice);
+    cudaMemcpy(devRow,A.cooRowIndA,nnzA*sizeof(int),cudaMemcpyHostToDevice);
+
+    cooFormat B;
+    B.cooColIndA = devCol;
+    B.cooRowIndA = devRow;
+    B.cooValA = devVal;
+    B.nnz = A.nnz;
+
+    int* sum, *counter;
+    cudaMalloc((void**)&sum,sizeof(int));
+    cudaMalloc((void**)&counter,sizeof(int));
+    double st1 = cpuSecond();
+    findTriangles<<<2,1024>>>(B,C,sum,counter);
+    CHECK(cudaPeekAtLastError());
+    CHECK(cudaDeviceSynchronize());
+    printf("Time on GPU: %lf sec\n",cpuSecond()-st1);
+    
+    double st = cpuSecond();
+    findTrianglesCPU(&B,&C);
+    printf("Time on CPU: %lf sec\n",cpuSecond()-st);
+
+    // for (int i=0;i<9;i++){
+    // printf("Sample: %f\n",C.cooValA[i]);
+    // }
     
     return 0; 
 }
-
-
+ 
+ 
 int findLines(char* fName){
-
+ 
     FILE * fp;
     char * line = NULL;
     size_t len = 0;
@@ -68,7 +154,7 @@ int findLines(char* fName){
     fclose(fp);
     return i;
 }
-
+ 
 int readCSV(char* fName, cooFormat *A, int* N, int* M, int* nT_Mat, double* matlab_time){
     FILE * fp;
     char * line = NULL;
@@ -125,11 +211,11 @@ int readCSV(char* fName, cooFormat *A, int* N, int* M, int* nT_Mat, double* matl
         
         i++;
     }
-   /* Close file */
+/* Close file */
     fclose(fp);
 
     /* Reading the original matrix N and M, as well as 
-       the matlab result and time elapsed */
+    the matlab result and time elapsed */
     fp = fopen(valFileName, "r");
     if (fp == NULL){
         printf("Could not open file\n");
@@ -160,33 +246,34 @@ int readCSV(char* fName, cooFormat *A, int* N, int* M, int* nT_Mat, double* matl
 
     return EXIT_SUCCESS;
 }
-
-int split(char* str, char* delim, long* tmp){
-    int i = 0;
-    char* token = strtok(str, delim);
-    char* strNum;
-    char* endPtr;
-    while (token != NULL) {
-        strNum = trim_space(token);
-        // printf("Number: %ld\n", strtoimax(strNum,&endPtr,10));
-        tmp[i++] = strtoimax(strNum,&endPtr,10);
-        // printf("Number: %ld\n", tmp[i-1]);
-        token = strtok(NULL, delim);   
-    }
-    return i;
-}
-
-char *trim_space(char *in){
-    char *out = NULL;
-    int len;
-    if (in) {
-        len = strlen(in);
-        while(len && isspace(in[len - 1])) --len;
-        while(len && *in && isspace(*in)) ++in, --len;
-        if (len) {
-            out = strndup(in, len);
-        }
-    }
-    return out;
-}
-
+ 
+ int split(char* str, char* delim, long* tmp){
+     int i = 0;
+     char* token = strtok(str, delim);
+     char* strNum;
+     char* endPtr;
+     while (token != NULL) {
+         strNum = trim_space(token);
+         // printf("Number: %ld\n", strtoimax(strNum,&endPtr,10));
+         tmp[i++] = strtoimax(strNum,&endPtr,10);
+         // printf("Number: %ld\n", tmp[i-1]);
+         token = strtok(NULL, delim);   
+     }
+     return i;
+ }
+ 
+ char *trim_space(char *in){
+     char *out = NULL;
+     int len;
+     if (in) {
+         len = strlen(in);
+         while(len && isspace(in[len - 1])) --len;
+         while(len && *in && isspace(*in)) ++in, --len;
+         if (len) {
+             out = strndup(in, len);
+         }
+     }
+     return out;
+ }
+ 
+ 

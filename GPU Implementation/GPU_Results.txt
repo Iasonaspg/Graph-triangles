@@ -1,0 +1,11 @@
+" atomicAdd replaced with atomicAggInc"
+0.194720		"delaunay_n10"
+217.223129		"delaunay_n22"
+187.474106		"auto"
+38.306976		"great-britain_osm"
+
+" Added condition: if ( col>row ) "
+0.181344		"delaunay_n10"
+176.744766		"delaunay_n22"
+98.173149		"auto"
+28.348000		"great-britain_osm"

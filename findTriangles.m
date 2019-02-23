@@ -27,9 +27,13 @@ close all
 %% PARAMETERS
 
 basePath  = 'https://sparse.tamu.edu/mat';
-folderPath = './';
+folderPath = '/home/johnfli/Code/PD_4/Data';
 groupName = 'DIMACS10';
+<<<<<<< HEAD
 matName   = 'delaunay_n12'; % auto|great-britain_osm|delaunay_n22
+=======
+matName   = 'delaunay_n10'; % auto|great-britain_osm|delaunay_n22
+>>>>>>> origin/john
 
 %% (BEGIN)
 
@@ -59,8 +63,11 @@ Problem = ioData.Problem;
 % keep only adjacency matrix (logical values)
 A = Problem.A > 0;
 
-% SAVE INTO .CSV FORMAT
+%% SAVE SPARSE MATRIX INTO CSR FORMAT INTO .CSV FILE
+   
+[columns, rows, values] = find(A);
 
+<<<<<<< HEAD
 [lines, columns, values] = find(A);
 
 lines = lines - 1;
@@ -75,9 +82,22 @@ fprintf(fileID,'%d,%d,%d\n',tr);
 
 N = length(Problem.A)
 M = length(lines)/2;
+=======
+csrValA = values;
+csrRowPtrA = [0; full(cumsum(sum(A,2)))];
+csrColIndA = columns - 1;
+
+fprintf( '   - Writing CSV has started\n');
+
+dlmwrite([folderPath csvFileName], csrValA', 'delimiter', ',', 'precision', 9);
+dlmwrite([folderPath csvFileName], csrRowPtrA', '-append', 'delimiter', ',', 'precision', 9);
+dlmwrite([folderPath csvFileName], csrColIndA', '-append', 'delimiter', ',', 'precision', 9);
+
+N = length(A);
+M = length(rows)/2;
+>>>>>>> origin/john
 
 clear Problem;
-fclose(fileID);
 
 fprintf( '   - CSV Created\n');
 
@@ -91,7 +111,14 @@ matlab_time = toc(ticCnt);
 
 fprintf( '   - DONE: %d triangles found in %.5f sec\n', nT, matlab_time );
 
+<<<<<<< HEAD
 dlmwrite([folderPath validationFileName], [N M nT matlab_time], 'delimiter', ',', 'precision', 9);
+=======
+%% SAVE RESULTS INTO VALIDATION FILE
+
+dlmwrite([folderPath validationFileName], [N M nT matlab_time], 'delimiter', ',', 'precision', 9);
+
+>>>>>>> origin/john
 
 %% (END)
 

@@ -3,6 +3,9 @@
  * cuFindTriangles.cu -- The kernel that calculates the Number of triangles into
  *                       a graph given the CSR format of its Adjacency Matrix
  *
+ * Reference: 
+ *    https://devblogs.nvidia.com/cuda-pro-tip-optimized-filtering-warp-aggregated-atomics/
+ * 
  * Michail Iason Pavlidis <michailpg@ece.auth.gr>
  * John Flionis <iflionis@auth.gr>
  *
@@ -11,8 +14,11 @@
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <cooperative_groups.h>
 #include "readCSV.h"
 #include "cuFindTriangles.h"
+
+using namespace cooperative_groups;
 
 __global__
 /* Kernel function that zeros the number of triangles variable */
@@ -20,6 +26,15 @@ void cuZeroVariable(int* nT) {
 
   (*nT) = 0;
 }
+
+
+__device__ void atomicAggInc(int *ctr) {
+  auto g = coalesced_threads();
+  if(g.thread_rank() == 0)
+    atomicAdd(ctr, g.size());
+  return ;
+}
+
 
 __global__
 /* Kernel function that finds the number of triangles formed in the graph */
@@ -33,58 +48,31 @@ void cuFindTriangles(csrFormat A, int N, int* nT) {
       for (int j = A.csrRowPtr[row]; j < A.csrRowPtr[row+1]; j++) {
 
           int col = A.csrColInd[j];
-
           // [row, col] = position of 1 horizontally
-          int beginPtr_csr_row = A.csrRowPtr[row];
-          int beginPtr_csc_col = A.csrRowPtr[col];
-          for (int k = beginPtr_csc_col; k < A.csrRowPtr[col+1]; k++) {
-                  
-              int csc_row = A.csrColInd[k];
-              int csc_val = A.csrVal[k];
-              // [csr_row, k] = position of 1 vertically
 
-              for (int l = beginPtr_csr_row; l < A.csrRowPtr[row+1]; l++) {
-    
-                  int csr_col = A.csrColInd[l];
-                  int csr_val = A.csrVal[l];
+          if ( col>row ) {
+            int beginPtr_csr_row = A.csrRowPtr[row];
+            int beginPtr_csc_col = A.csrRowPtr[col];
+            for (int k = beginPtr_csc_col; k < A.csrRowPtr[col+1]; k++) {
+                    
+                int csc_row = A.csrColInd[k];
+                // [csr_row, k] = position of 1 vertically
 
-                  if ( csc_row == csr_col )
-                      atomicAdd( nT, (int)(csr_val * csc_val) );
-                  else if ( csr_col > csc_row ) {
-                      beginPtr_csr_row = l;
-                      break;
-                  }
+                for (int l = beginPtr_csr_row; l < A.csrRowPtr[row+1]; l++) {
+      
+                    int csr_col = A.csrColInd[l];
 
-              }
+                    if ( csc_row == csr_col )
+                        atomicAggInc( nT );
+                    else if ( csr_col > csc_row ) {
+                        beginPtr_csr_row = l;
+                        break;
+                    }
+
+                }
+            }
           }
       }
   }
 
 }
-
-
-/*
-// **************  2D threads & blocks  **************
-{
-
-  int val = 0;
-
-  int row_index = blockIdx.x * blockDim.x + threadIdx.x;
-  int col_index = blockIdx.y * blockDim.y + threadIdx.y;
-  int row_stride = blockDim.x * gridDim.x;
-  int col_stride = blockDim.y * gridDim.y;
-
-  for(int row = row_index; row < N; row += row_stride)
-  {
-    for(int col = col_index; col < N; col += col_stride)
-      if ( (A[row * N + col] != 0) )
-      {
-        val = 0;
-        for ( int k = 0; k < N; ++k )
-          val += A[row * N + k] * A[k * N + col];
-        B[row * N + col] = val;
-      }
-  }
-}
-// ***************************************************
-*/

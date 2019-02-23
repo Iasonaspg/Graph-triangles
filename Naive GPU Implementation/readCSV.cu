@@ -18,7 +18,7 @@
 #include "readCSV.h"
 
 int split_line_int(char* str, char* delim, int* args);
-int split_line_float(char* str, char* delim, float args);
+int split_line_float(char* str, char* delim, float* args);
 char *trim_space(char *in);
 int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matlab_time);
 
@@ -104,6 +104,7 @@ int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matl
     fclose(fp);
 
     /* Allocating memory to hold the struct of Sparse Matrix A */
+    A->csrVal = (float*)malloc ((A->nnz)*sizeof(float));
     A->csrRowPtr = (int*)malloc (((*N)+1)*sizeof(int));
     A->csrColInd = (int*)malloc ((A->nnz)*sizeof(int));
 
@@ -114,9 +115,8 @@ int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matl
         exit(EXIT_FAILURE);
     }
 
-    float garbage;
     if ((read = getline(&line, &len, fp)) != -1)
-        split_line_float(line,",",garbage);
+        split_line_float(line,",",A->csrVal);
 
     if ((read = getline(&line, &len, fp)) != -1)
         split_line_int(line,",",A->csrRowPtr);
@@ -145,16 +145,16 @@ int split_line_int(char* str, char* delim, int* tmp){
     return i;
 }
 
-int split_line_float(char* str, char* delim, float tmp){
-
+int split_line_float(char* str, char* delim, float* tmp){
+    int i = 0;
     char* token = strtok(str, delim);
     while (token != NULL) {
 
-        tmp = atof(token);
+        tmp[i++] = atof(token);
 
         token = strtok(NULL, delim);   
     }
-    return 1;
+    return i;
 }
 
 char *trim_space(char *in){

@@ -27,13 +27,10 @@ int main (int argc, char **argv) {
   csrFormat h_A, d_A; 
 
   /* Parsing input arguments */
-  if ( argc == 2 ) {
-    printf("--Reading Input Data from CSV file: Started--\n");    
+  if ( argc == 2 ) 
     readCSV(argv[1], &h_A, &N, &M, &nT_Mat, &matlab_time);
-    printf("--Reading Input Data from CSV file: DONE!--\n");    
-  }
   else {
-    printf("Usage: ./trianglesGPU <CSVfileName>\n");
+    printf("Usage: ./trianglesGPU <CSVfileName>\n"); // <N> <M>
     printf(" where <CSVfileName.csv> is the name of the input data file (auto | great-britain_osm | delaunay_n22 | delaunay_n10)\n");
     printf("No need for suffix '.csv'\n");
     exit(1);
@@ -53,14 +50,19 @@ int main (int argc, char **argv) {
   // 1D threads & blocks
   threadsPerBlock = 8 * warp;
   numberOfBlocks  = 5 * SMs;
+  // 2D threads & blocks
+  dim3 threads_per_block (warp/2, warp/2, 1);
+  dim3 number_of_blocks ( SMs/4, SMs/4, 1);  
 
 
   /* Allocate device memory to store the sparse CSR representation of A */
   d_A.nnz = h_A.nnz;
+  CUDA_CALL(cudaMalloc((void **)&(d_A.csrVal),    sizeof(float) * d_A.nnz));
   CUDA_CALL(cudaMalloc((void **)&(d_A.csrRowPtr), sizeof(int)   * (N + 1)));
   CUDA_CALL(cudaMalloc((void **)&(d_A.csrColInd), sizeof(int)   * d_A.nnz));
 
   /* Copy the sparse CSR representation of A from the Host to the Device */
+  CUDA_CALL(cudaMemcpy(d_A.csrVal,    h_A.csrVal,    d_A.nnz * sizeof(float), cudaMemcpyHostToDevice));
   CUDA_CALL(cudaMemcpy(d_A.csrRowPtr, h_A.csrRowPtr, (N + 1) * sizeof(int)  , cudaMemcpyHostToDevice));
   CUDA_CALL(cudaMemcpy(d_A.csrColInd, h_A.csrColInd, d_A.nnz * sizeof(int)  , cudaMemcpyHostToDevice));
 
@@ -103,7 +105,7 @@ int main (int argc, char **argv) {
   CUDA_CALL(cudaMemcpy(h_nT, d_nT, 1 * sizeof(int), cudaMemcpyDeviceToHost));
 
   /* Validating the result */
-  int pass = validation(h_nT[0]/3, nT_Mat);    // Executing the nT*(1/6), that was omitted in cuFindTriangles
+  int pass = validation(h_nT[0]/6, nT_Mat);    // Executing the nT*(1/6), that was omitted in cuFindTriangles
   assert(pass != 0);
 
   /* Calculate elapsed time */
@@ -111,7 +113,7 @@ int main (int argc, char **argv) {
   cudaEventElapsedTime(&milliseconds, start, stop);
 
   /* Timer display */
-  printf("  -GPU number of triangles nT: %d, Wall clock time: %fms ( < %lf ( Matlab Time ) )\n", h_nT[0]/3, milliseconds, matlab_time);
+  printf("GPU number of triangles nT: %d, Wall clock time: %fms ( < %lf ( Matlab Time ) )\n", h_nT[0]/6, milliseconds, matlab_time);
 
             /* Write the results into file */
             FILE *fp;
@@ -125,11 +127,12 @@ int main (int argc, char **argv) {
 
 
   /* CUDA Cleanup */
+  CUDA_CALL(cudaFree(d_A.csrVal));
   CUDA_CALL(cudaFree(d_A.csrRowPtr));
   CUDA_CALL(cudaFree(d_A.csrColInd));
 
   /* Host Cleanup */
-  free(h_A.csrRowPtr);      free(h_A.csrColInd);
+  free(h_A.csrVal);       free(h_A.csrRowPtr);      free(h_A.csrColInd);
 
 
   /* Exit */

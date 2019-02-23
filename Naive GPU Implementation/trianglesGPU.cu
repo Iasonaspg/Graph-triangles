@@ -57,12 +57,10 @@ int main (int argc, char **argv) {
 
   /* Allocate device memory to store the sparse CSR representation of A */
   d_A.nnz = h_A.nnz;
-  CUDA_CALL(cudaMalloc((void **)&(d_A.csrVal),    sizeof(float) * d_A.nnz));
   CUDA_CALL(cudaMalloc((void **)&(d_A.csrRowPtr), sizeof(int)   * (N + 1)));
   CUDA_CALL(cudaMalloc((void **)&(d_A.csrColInd), sizeof(int)   * d_A.nnz));
 
   /* Copy the sparse CSR representation of A from the Host to the Device */
-  CUDA_CALL(cudaMemcpy(d_A.csrVal,    h_A.csrVal,    d_A.nnz * sizeof(float), cudaMemcpyHostToDevice));
   CUDA_CALL(cudaMemcpy(d_A.csrRowPtr, h_A.csrRowPtr, (N + 1) * sizeof(int)  , cudaMemcpyHostToDevice));
   CUDA_CALL(cudaMemcpy(d_A.csrColInd, h_A.csrColInd, d_A.nnz * sizeof(int)  , cudaMemcpyHostToDevice));
 
@@ -127,12 +125,11 @@ int main (int argc, char **argv) {
 
 
   /* CUDA Cleanup */
-  CUDA_CALL(cudaFree(d_A.csrVal));
   CUDA_CALL(cudaFree(d_A.csrRowPtr));
   CUDA_CALL(cudaFree(d_A.csrColInd));
 
   /* Host Cleanup */
-  free(h_A.csrVal);       free(h_A.csrRowPtr);      free(h_A.csrColInd);
+  free(h_A.csrRowPtr);      free(h_A.csrColInd);
 
 
   /* Exit */

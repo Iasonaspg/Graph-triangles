@@ -66,7 +66,6 @@ __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
     for (int i=0;i<C->nnz;i++){
        for (int j=0;j<A->nnz;j++){
            if ((A->cooColIndA[j] == C->cooColIndA[i]) && (A->cooRowIndA[j] == C->cooRowIndA[i])){
-               //atomicAdd(&sum,C.cooValA[i]);
                sum += C->cooValA[i];
                break;
            }
@@ -117,7 +116,7 @@ int main(int argc, char** argv){
     cudaMalloc((void**)&sum,sizeof(int));
     cudaMalloc((void**)&counter,sizeof(int));
     double st1 = cpuSecond();
-    findTriangles<<<2,1024>>>(B,C,sum,counter);
+    findTriangles<<<160,1024>>>(B,C,sum,counter);
     CHECK(cudaPeekAtLastError());
     CHECK(cudaDeviceSynchronize());
     printf("Time on GPU: %lf sec\n",cpuSecond()-st1);
@@ -199,14 +198,19 @@ int readCSV(char* fName, cooFormat *A, int* N, int* M, int* nT_Mat, double* matl
         exit(EXIT_FAILURE);
     }
 
-    long i = 0;
+    long i;
+    for (i=0;i<leng;i++){
+        A->cooValA[i] = 1;
+    }
+
+    i = 0;
     while ((read = getline(&line, &len, fp)) != -1) {
         // printf("%s", line);
         split(line,",",tmp);
         // printf("I: %d\n",i);
         A->cooRowIndA[i] = tmp[0];
         A->cooColIndA[i] = tmp[1];        
-        A->cooValA[i] = tmp[2];
+        // A->cooValA[i] = tmp[2];
         // printf("A[%d]: %ld\n", j, A[j]);
         
         i++;

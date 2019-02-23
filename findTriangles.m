@@ -60,16 +60,14 @@ A = Problem.A > 0;
 
 %% SAVE SPARSE MATRIX INTO CSR FORMAT INTO .CSV FILE
    
-[columns, rows, values] = find(A);
+[columns, rows] = find(A);
 
-csrValA = values;
 csrRowPtrA = [0; full(cumsum(sum(A,2)))];
 csrColIndA = columns - 1;
 
 fprintf( '   - Writing CSV has started\n');
 
-dlmwrite([folderPath csvFileName], csrValA', 'delimiter', ',', 'precision', 9);
-dlmwrite([folderPath csvFileName], csrRowPtrA', '-append', 'delimiter', ',', 'precision', 9);
+dlmwrite([folderPath csvFileName], csrRowPtrA', 'delimiter', ',', 'precision', 9);
 dlmwrite([folderPath csvFileName], csrColIndA', '-append', 'delimiter', ',', 'precision', 9);
 
 N = length(A);

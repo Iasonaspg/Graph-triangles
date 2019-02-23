@@ -11,7 +11,7 @@
 /* Struct for Sparse Matrix type in the Compressed Sparse Row Format (CSR) */
 typedef struct Sparse_Matrix_in_CSR_format {
    int 		nnz;
-   float* 	csrVal;
+   //float* 	csrVal;
    int* 	csrRowPtr;
    int* 	csrColInd;
 }csrFormat;

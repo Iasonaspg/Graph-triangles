@@ -68,7 +68,7 @@ int main (int argc, char **argv) {
             fclose(fp);
 
   /* Cleanup */
-  free(A.csrVal);       free(A.csrRowPtr);      free(A.csrColInd);
+  free(A.csrRowPtr);      free(A.csrColInd);
   
   /* Exit */
   return 0;

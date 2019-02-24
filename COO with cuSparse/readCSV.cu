@@ -19,20 +19,20 @@
  
  
 __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
-    long index = threadIdx.x + blockIdx.x*blockDim.x;
+    int index = threadIdx.x + blockIdx.x*blockDim.x;
     int tid = threadIdx.x;
-    long stride = blockDim.x * gridDim.x;
+    int stride = blockDim.x * gridDim.x;
     //printf("To A: %d\n",A.nnz);
    
-    *sum = 0;
-    // __shared__ float totalSum[1024];
-    // totalSum[tid] = C.cooValA[index];
+    
+    __shared__ float totalSum[1024];
+    totalSum[tid] = C.cooValA[index];
     // if (threadIdx.x == 0){
     //     for (int k=0;k<9;k++){
     //         printf("Times: %")
     //     }
     // }
-    // __syncthreads();
+    __syncthreads();
     
     // for (int s=blockDim.x/2; s>0; s>>=1) {
     //     if (tid < s) {
@@ -59,6 +59,45 @@ __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
         printf("Mphka: %d\n",*counter);
     }
     
+ }
+
+ __global__ void findTrianglesShared(cooFormat A, cooFormat C, int* totalSum, int* counter){
+
+    int index = threadIdx.x + blockIdx.x*blockDim.x;
+    int tid = threadIdx.x;
+    int stride = blockDim.x * gridDim.x;
+
+    __shared__ float sum[1024];
+    __shared__ int rowA[1024];
+    __shared__ int colA[1024];
+    __shared__ int rowC[1024];
+    __shared__ int colC[1024];
+
+    if (threadIdx.x == 0 && blockIdx.x == 0){
+        *totalSum = 0;
+    }
+
+    for (int i=index;i<C.nnz;i+=stride){
+        
+        sum[tid] = C.cooValA[index];
+        rowA[tid] = A.cooRowIndA[index]
+        colA[tid] = A.cooColIndA[index];
+        rowC[tid] = C.cooRowIndA[index];
+        colC[tid] = C.cooColIndA[index];
+
+        
+    }
+
+    
+    
+
+    
+    
+
+
+
+
+
  }
 
  void findTrianglesCPU(cooFormat* A, cooFormat* C){

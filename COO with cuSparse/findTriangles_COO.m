@@ -4,6 +4,7 @@
 %   Download a graph from Sparse Matrix Collection and count the number of
 %   triangles.
 %
+
 %
 % AUTHORS
 %
@@ -26,9 +27,9 @@ close all
 %% PARAMETERS
 
 basePath  = 'https://sparse.tamu.edu/mat';
-folderPath = '/home/johnfli/Code/PD_4/Data';
+folderPath = './';
 groupName = 'DIMACS10';
-matName   = 'delaunay_n10'; % auto|great-britain_osm|delaunay_n22
+matName   = 'delaunay_n12'; % auto|great-britain_osm|delaunay_n22
 
 %% (BEGIN)
 
@@ -58,22 +59,25 @@ Problem = ioData.Problem;
 % keep only adjacency matrix (logical values)
 A = Problem.A > 0;
 
-%% SAVE SPARSE MATRIX INTO CSR FORMAT INTO .CSV FILE
-   
-[columns, rows] = find(A);
+% SAVE INTO .CSV FORMAT
 
-csrRowPtrA = [0; full(cumsum(sum(A,2)))];
-csrColIndA = columns - 1;
+[lines, columns] = find(A);
+
+lines = lines - 1;
+columns = columns - 1;
+B = [columns lines];
+tr = transpose(B);
 
 fprintf( '   - Writing CSV has started\n');
 
-dlmwrite([folderPath csvFileName], csrRowPtrA', 'delimiter', ',', 'precision', 9);
-dlmwrite([folderPath csvFileName], csrColIndA', '-append', 'delimiter', ',', 'precision', 9);
+fileID = fopen( [folderPath csvFileName], 'w');
+fprintf(fileID,'%d,%d\n',tr);
 
-N = length(A);
-M = length(rows)/2;
+N = length(Problem.A)
+M = length(lines)/2;
 
 clear Problem;
+fclose(fileID);
 
 fprintf( '   - CSV Created\n');
 
@@ -87,11 +91,9 @@ matlab_time = toc(ticCnt);
 
 fprintf( '   - DONE: %d triangles found in %.5f sec\n', nT, matlab_time );
 
-%% SAVE RESULTS INTO VALIDATION FILE
-
 dlmwrite([folderPath validationFileName], [N M nT matlab_time], 'delimiter', ',', 'precision', 9);
-
 
 %% (END)
 
 fprintf('\n *** end %s ***\n\n',mfilename);
+

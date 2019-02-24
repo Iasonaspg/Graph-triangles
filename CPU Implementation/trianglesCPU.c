@@ -68,7 +68,7 @@ int main (int argc, char **argv) {
             fclose(fp);
 
   /* Cleanup */
-  free(A.csrVal);       free(A.csrRowPtr);      free(A.csrColInd);
+  free(A.csrRowPtr);      free(A.csrColInd);
   
   /* Exit */
   return 0;
@@ -91,13 +91,13 @@ int findTriangles(csrFormat* A, int N)
           for (int k = beginPtr_csc_col; k < A->csrRowPtr[col+1]; k++) {
                   
               int csc_row = A->csrColInd[k];
-              int csc_val = A->csrVal[k];
+              int csc_val = 1;
               // [csr_row, k] = position of 1 vertically
 
               for (int l = beginPtr_csr_row; l < A->csrRowPtr[row+1]; l++) {
     
                   int csr_col = A->csrColInd[l];
-                  int csr_val = A->csrVal[l];
+                  int csr_val = 1;
 
                   if ( csc_row == csr_col )
                       nT += (int)(csr_val * csc_val); 

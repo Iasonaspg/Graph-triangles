@@ -18,21 +18,25 @@
  #include "readCSV.h"
  
  
+__global__ void search(int* arrA, int* arrB, int valA, int valB, int size){
+
+    int index = threadIdx.x + blockIdx.x*blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+
+    for (int i=index;i<size;i+=stride){
+        if ((arrA[i] == valA) && (arrB[i] == valB)){
+            printf("Found\n");
+        }
+    }
+
+}
+
+
 __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int tid = threadIdx.x;
     int stride = blockDim.x * gridDim.x;
-    //printf("To A: %d\n",A.nnz);
-   
-    
-    __shared__ float totalSum[1024];
-    totalSum[tid] = C.cooValA[index];
-    // if (threadIdx.x == 0){
-    //     for (int k=0;k<9;k++){
-    //         printf("Times: %")
-    //     }
-    // }
-    __syncthreads();
+     
     
     // for (int s=blockDim.x/2; s>0; s>>=1) {
     //     if (tid < s) {
@@ -42,21 +46,23 @@ __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
     // }
 
     
-    for (long i=index;i<C.nnz;i+=stride){
-       for (int j=0;j<A.nnz;j++){
-           if ((A.cooColIndA[j] == C.cooColIndA[i]) && (A.cooRowIndA[j] == C.cooRowIndA[i])){
-               atomicAdd(counter,1);
-               atomicAdd(sum,C.cooValA[i]);
-               break;
-           }
+    for (long i=index;i<5;i+=stride){
+       for (int j=0;j<1;j++){
+           search<<<2,256>>>(A.cooColIndA,A.cooRowIndA,C.cooColIndA[i],C.cooRowIndA[i],A.nnz);
+           cudaDeviceSynchronize();
+        //    if ((A.cooColIndA[j] == C.cooColIndA[i]) && (A.cooRowIndA[j] == C.cooRowIndA[i])){
+        //        //atomicAdd(counter,1);
+        //        atomicAdd(sum,C.cooValA[i]);
+        //        break;
+        //    }
        }
-       __syncthreads();
+    //    __syncthreads();
     }
     
     __syncthreads();
     if (threadIdx.x == 0 && blockIdx.x == 0){
         printf("Triangles on GPU: %d\n",sum[0]/6);
-        printf("Mphka: %d\n",*counter);
+        // printf("Mphka: %d\n",*counter);
     }
     
  }
@@ -66,8 +72,8 @@ __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int tid = threadIdx.x;
     int stride = blockDim.x * gridDim.x;
+    int flag;
 
-    __shared__ float sum[1024];
     __shared__ int rowA[1024];
     __shared__ int colA[1024];
     __shared__ int rowC[1024];
@@ -79,26 +85,42 @@ __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
 
     for (int i=index;i<C.nnz;i+=stride){
         
-        sum[tid] = C.cooValA[index];
-        rowA[tid] = A.cooRowIndA[index]
+        rowA[tid] = A.cooRowIndA[index];
         colA[tid] = A.cooColIndA[index];
         rowC[tid] = C.cooRowIndA[index];
         colC[tid] = C.cooColIndA[index];
 
-        
+        __syncthreads();
+
+        flag = 0;
+        for (int k=0;k<1024;k++){
+            if ((rowA[k] == rowC[tid]) && (colA[k] == colC[tid])){
+                atomicAdd(totalSum,C.cooValA[i]);
+                flag = 1;
+                break;
+            }
+        }
+        if (flag == 0){
+            for (int j=0;j<A.nnz;j++){
+                if ((A.cooColIndA[j] == colC[tid]) && (A.cooRowIndA[j] == rowC[tid])){
+                    //atomicAdd(counter,1);
+                    atomicAdd(totalSum,C.cooValA[i]);
+                    break;
+                }
+            }
+        }
+        __syncthreads();
     }
 
-    
-    
+    __syncthreads();
 
-    
-    
-
-
-
-
+    if (threadIdx.x == 0 && blockIdx.x == 0){
+        printf("Triangles on GPU with shared memory: %d\n",totalSum[0]/6);
+        // printf("Mphka: %d\n",*counter);
+    }
 
  }
+
 
  void findTrianglesCPU(cooFormat* A, cooFormat* C){
     int sum = 0;
@@ -159,9 +181,15 @@ int main(int argc, char** argv){
     CHECK(cudaPeekAtLastError());
     CHECK(cudaDeviceSynchronize());
     printf("Time on GPU: %lf sec\n",cpuSecond()-st1);
+
+    // double st2 = cpuSecond();
+    // findTrianglesShared<<<160,1024>>>(B,C,sum,counter);
+    // CHECK(cudaPeekAtLastError());
+    // CHECK(cudaDeviceSynchronize());
+    // printf("Time on GPU: %lf sec\n",cpuSecond()-st2);
     
     double st = cpuSecond();
-    findTrianglesCPU(&B,&C);
+    //findTrianglesCPU(&B,&C);
     printf("Time on CPU: %lf sec\n",cpuSecond()-st);
 
     // for (int i=0;i<9;i++){

@@ -41,7 +41,6 @@ __global__ void filter(cooFormat A, cooFormat C){
 
 __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
-    int tid = threadIdx.x;
     int stride = blockDim.x * gridDim.x;
      
     
@@ -52,6 +51,9 @@ __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
     //     __syncthreads();
     // }
 
+    if (threadIdx.x == 0 && blockIdx.x == 0){
+        *sum = 0;
+    }
     
     for (long i=index;i<C.nnz;i+=stride){
        for (int j=0;j<A.nnz;j++){
@@ -75,47 +77,40 @@ __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
 __global__ void findTrianglesShared(cooFormat A, cooFormat C, int* totalSum, int* counter){
 
     int index = threadIdx.x + blockIdx.x*blockDim.x;
-    int tid = threadIdx.x;
     int stride = blockDim.x * gridDim.x;
-    int flag;
-
+    int tid = threadIdx.x;
+    
     __shared__ int rowA[1024];
     __shared__ int colA[1024];
-    __shared__ int rowC[1024];
-    __shared__ int colC[1024];
+    
 
     if (threadIdx.x == 0 && blockIdx.x == 0){
         *totalSum = 0;
     }
 
-    for (int i=index;i<C.nnz;i+=stride){
-        
-        rowA[tid] = A.cooRowIndA[index];
-        colA[tid] = A.cooColIndA[index];
-        rowC[tid] = C.cooRowIndA[index];
-        colC[tid] = C.cooColIndA[index];
+    rowA[tid] = A.cooRowIndA[index];
+    colA[tid] = A.cooColIndA[index];
+    
 
-        __syncthreads();
-
-        flag = 0;
-        for (int k=0;k<1024;k++){
-            if ((rowA[k] == rowC[tid]) && (colA[k] == colC[tid])){
-                atomicAdd(totalSum,C.cooValA[i]);
-                flag = 1;
-                break;
-            }
+    for (int i=0;i<C.nnz;i++){
+        *counter = 0;
+        if ((rowA[tid] == C.cooRowIndA[i]) && (colA[tid] == C.cooColIndA[i])){
+            atomicAdd(totalSum,C.cooValA[i]);
+            *counter = 1;
         }
-        if (flag == 0){
-            for (int j=0;j<A.nnz;j++){
-                if ((A.cooColIndA[j] == colC[tid]) && (A.cooRowIndA[j] == rowC[tid])){
+        __syncthreads();
+        if (*counter != 1){
+            for (int j=(index+stride);j<A.nnz;j+=stride){
+                if ((A.cooColIndA[j] == C.cooColIndA[i]) && (A.cooRowIndA[j] == C.cooRowIndA[i])){
                     //atomicAdd(counter,1);
                     atomicAdd(totalSum,C.cooValA[i]);
                     break;
                 }
             }
         }
-        __syncthreads();
+        __syncthreads();   
     }
+        
 
     __syncthreads();
 

@@ -64,10 +64,16 @@ int main(int argc, char** argv){
     printf("Time filtering on GPU: %lf sec\n",cpuSecond()-st1);
 
     double st2 = cpuSecond();
+    findTrianglesShared<<<160,1024>>>(B,C,sum,counter);
+    CHECK(cudaPeekAtLastError());
+    CHECK(cudaDeviceSynchronize());
+    printf("Time on GPU using shared memory: %lf sec\n",cpuSecond()-st2);
+
+    double st3 = cpuSecond();
     findTriangles<<<160,1024>>>(B,C,sum,counter);
     CHECK(cudaPeekAtLastError());
     CHECK(cudaDeviceSynchronize());
-    printf("Time on GPU: %lf sec\n",cpuSecond()-st2);
+    printf("Time on GPU using memory: %lf sec\n",cpuSecond()-st3);
     
     double st = cpuSecond();
     //findTrianglesCPU(&B,&C);

@@ -18,29 +18,41 @@
  #include "readCSV.h"
 
 
-__global__ void filter(cooFormat A, cooFormat C){
+__global__ void filter(cooFormat A, cooFormat C, int* counter1, int* counter2){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
     
+    if (threadIdx.x == 0 && blockIdx.x == 0){
+        *counter1 = 0;
+        *counter2 = 0;
+    }
+
+    // grid_group g = this_grid();
+    // g.sync();
 
     for (int i=index;i<C.nnz;i+=stride){
         int flag = 0;
         for (int j=0;j<A.nnz;j++){
             if ((A.cooColIndA[j] == C.cooColIndA[i]) && (A.cooRowIndA[j] == C.cooRowIndA[i])){
                 flag = 1;
+                atomicAdd(counter1,1);
                 break;
             }
         }
-        if (!flag){
+        if (flag == 0){
             C.cooValA[i] = 0;
+            atomicAdd(counter2,1);
         }
     }
+
+    // g.sync();
 
 }
 
 
 __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
+    int index1 = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
      
     
@@ -55,12 +67,15 @@ __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
         *sum = 0;
     }
     
+    int bla;
+
     for (long i=index;i<C.nnz;i+=stride){
        for (int j=0;j<A.nnz;j++){
            if ((A.cooColIndA[j] == C.cooColIndA[i]) && (A.cooRowIndA[j] == C.cooRowIndA[i])){
-               //atomicAdd(counter,1);
-               atomicAdd(sum,C.cooValA[i]);
-               break;
+                atomicAdd(counter,1);
+                atomicAdd(sum,C.cooValA[i]);
+                bla++;
+                break;
            }
        }
     //    __syncthreads();
@@ -69,8 +84,35 @@ __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
     __syncthreads();
     if (threadIdx.x == 0 && blockIdx.x == 0){
         printf("Triangles on GPU: %d\n",sum[0]/6);
-        // printf("Mphka: %d\n",*counter);
+        printf("Mphka: %d\n",*counter);
     }
+    
+}
+
+
+__global__ void findTriangles1(cooFormat A, cooFormat C, int* sum, int* counter){
+    int index = threadIdx.x + blockIdx.x*blockDim.x;
+    int index1 = threadIdx.x + blockIdx.x*blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+     
+    
+    // for (int s=blockDim.x/2; s>0; s>>=1) {
+    //     if (tid < s) {
+    //         totalSum[tid] += totalSum[tid + s];
+    //     }
+    //     __syncthreads();
+    // }
+
+  
+    //int bla;
+
+    for (long i=index;i<C.nnz;i+=stride){
+       
+        atomicAdd(sum,C.cooValA[i]);
+        // atomicAdd(counter,1);
+        // bla++;
+    }
+    
     
 }
 

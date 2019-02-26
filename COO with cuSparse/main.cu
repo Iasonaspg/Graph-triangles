@@ -53,31 +53,36 @@ int main(int argc, char** argv){
     B.cooValA = devVal;
     B.nnz = A.nnz;
 
-    int* sum, *counter;
-    cudaMalloc((void**)&sum,sizeof(int));
+    int* sum, *counter, *counter1, *counter2;
+    cudaMallocManaged(&sum,sizeof(int));
     cudaMalloc((void**)&counter,sizeof(int));
+    cudaMallocManaged(&counter1,sizeof(int));
+    cudaMallocManaged(&counter2,sizeof(int));
 
     double st1 = cpuSecond();
-    filter<<<160,1024>>>(B,C);
+    filter<<<160,1024>>>(B,C,counter1,counter2);
     CHECK(cudaPeekAtLastError());
     CHECK(cudaDeviceSynchronize());
     printf("Time filtering on GPU: %lf sec\n",cpuSecond()-st1);
+    printf("Vrhka tosa simeia: %d kai midenisa tosa: %d\n",*counter1,*counter2);
 
     double st2 = cpuSecond();
-    findTrianglesShared<<<160,1024>>>(B,C,sum,counter);
+    //findTrianglesShared<<<160,1024>>>(B,C,sum,counter);
     CHECK(cudaPeekAtLastError());
     CHECK(cudaDeviceSynchronize());
-    printf("Time on GPU using shared memory: %lf sec\n",cpuSecond()-st2);
+    //printf("Time on GPU using shared memory: %lf sec\n",cpuSecond()-st2);
 
     double st3 = cpuSecond();
-    findTriangles<<<160,1024>>>(B,C,sum,counter);
+    *sum = 0;
+    findTriangles1<<<160,1024>>>(B,C,sum,counter);
     CHECK(cudaPeekAtLastError());
     CHECK(cudaDeviceSynchronize());
+    printf("Triangles: %d\n",sum[0]/6);
     printf("Time on GPU using memory: %lf sec\n",cpuSecond()-st3);
     
     double st = cpuSecond();
     //findTrianglesCPU(&B,&C);
-    printf("Time on CPU: %lf sec\n",cpuSecond()-st);
+    //printf("Time on CPU: %lf sec\n",cpuSecond()-st);
 
     // for (int i=0;i<9;i++){
     // printf("Sample: %f\n",C.cooValA[i]);

@@ -3,9 +3,9 @@
  * cuFindTriangles.cu -- The kernel that calculates the Number of triangles into
  *                       a graph given the CSR format of its Adjacency Matrix
  *
- * Reference: 
- *    https://devblogs.nvidia.com/cuda-pro-tip-optimized-filtering-warp-aggregated-atomics/
+ * Reference: https://devblogs.nvidia.com/cuda-pro-tip-optimized-filtering-warp-aggregated-atomics/
  * 
+ *
  * Michail Iason Pavlidis <michailpg@ece.auth.gr>
  * John Flionis <iflionis@auth.gr>
  *
@@ -28,11 +28,10 @@ void cuZeroVariable(int* nT) {
 }
 
 
-__device__ void atomicAggInc(int *ctr) {
+__inline__ __device__ void atomicAggInc(int *ctr) {
   auto g = coalesced_threads();
   if(g.thread_rank() == 0)
     atomicAdd(ctr, g.size());
-  return ;
 }
 
 
@@ -40,39 +39,50 @@ __global__
 /* Kernel function that finds the number of triangles formed in the graph */
 void cuFindTriangles(csrFormat A, int N, int* nT) {
 
+  // Each thread processes a different row
   int index = threadIdx.x + blockIdx.x*blockDim.x;
   int stride = blockDim.x * gridDim.x;
 
+  // Iterate over rows
   for (int row = index; row < N; row += stride) {
 
-      for (int j = A.csrRowPtr[row]; j < A.csrRowPtr[row+1]; j++) {
+    // Iterate over columns
+    for (int j = A.csrRowPtr[row]; j < A.csrRowPtr[row+1]; j++) {
 
-          int col = A.csrColInd[j];
-          // [row, col] = position of 1 horizontally
+      int col = A.csrColInd[j];
+      // [row, col] = position of 1 horizontally
 
-          if ( col>row ) {
-            int beginPtr_csr_row = A.csrRowPtr[row];
-            int beginPtr_csc_col = A.csrRowPtr[col];
-            for (int k = beginPtr_csc_col; k < A.csrRowPtr[col+1]; k++) {
-                    
-                int csc_row = A.csrColInd[k];
-                // [csr_row, k] = position of 1 vertically
+      if ( col>row ) {
+        // OPTIMIZATION: Due to symmetry, nT of the upper half array is
+        // equal to half the nT, thus additions are cut down to half ! 
+        int beginPtr_csr_row = A.csrRowPtr[row];
+        int beginPtr_csc_col = A.csrRowPtr[col];
+        
+        // Multiplication of A[:,col] * A[row,:]      
+        for (int k = beginPtr_csc_col; k < A.csrRowPtr[col+1]; k++) {
+                  
+        int csc_row = A.csrColInd[k];
+        // [csr_row, k] = position of 1 vertically
 
-                for (int l = beginPtr_csr_row; l < A.csrRowPtr[row+1]; l++) {
-      
-                    int csr_col = A.csrColInd[l];
+          for (int l = beginPtr_csr_row; l < A.csrRowPtr[row+1]; l++) {
 
-                    if ( csc_row == csr_col )
-                        atomicAggInc( nT );
-                    else if ( csr_col > csc_row ) {
-                        beginPtr_csr_row = l;
-                        break;
-                    }
+            int csr_col = A.csrColInd[l];
 
-                }
+            if ( csc_row == csr_col )
+                atomicAggInc( nT );
+            else if ( csr_col > csc_row ) {
+                // OPTIMIZATION: when col>row no need to go further,
+                // continue to the next col, plus for further optimization
+                // keep track of the beginPtr_csr_row where the previous
+                // iteration stopped, so that no time is wasted in rechecking
+                beginPtr_csr_row = l;
+                break;
             }
+
           }
+        }
       }
+    }
   }
 
 }

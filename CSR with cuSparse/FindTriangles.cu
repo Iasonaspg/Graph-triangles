@@ -18,7 +18,7 @@
  #include "readCSV.h"
 
 
-__global__ void filter(cooFormat A, cooFormat C, int* counter1, int* counter2){
+__global__ void filter(csrFormat A, csrFormat C, int* counter1, int* counter2){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
     
@@ -30,21 +30,21 @@ __global__ void filter(cooFormat A, cooFormat C, int* counter1, int* counter2){
     for (int i=index;i<C.nnz;i+=stride){
         int flag = 0;
         for (int j=0;j<A.nnz;j++){
-            if ((A.cooColIndA[j] == C.cooColIndA[i]) && (A.cooRowIndA[j] == C.cooRowIndA[i])){
+            if ((A.csrColInd[j] == C.csrColInd[i]) && (A.csrRowPtr[j] == C.csrRowPtr[i])){
                 flag = 1;
                 //atomicAdd(counter1,1);
                 break;
             }
         }
         if (flag == 0){
-            C.cooValA[i] = 0;
+            C.csrVal[i] = 0;
             //atomicAdd(counter2,1);
         }
     }
 }
 
 
-__global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
+__global__ void findTriangles(csrFormat A, csrFormat C, int* sum, int* counter){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int index1 = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
@@ -56,9 +56,9 @@ __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
     
     for (long i=index;i<C.nnz;i+=stride){
        for (int j=0;j<A.nnz;j++){
-           if ((A.cooColIndA[j] == C.cooColIndA[i]) && (A.cooRowIndA[j] == C.cooRowIndA[i])){
+           if ((A.csrColInd[j] == C.csrColInd[i]) && (A.csrRowPtr[j] == C.csrRowPtr[i])){
                 atomicAdd(counter,1);
-                atomicAdd(sum,C.cooValA[i]);
+                atomicAdd(sum,C.csrVal[i]);
                 break;
            }
        }
@@ -74,7 +74,7 @@ __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
 }
 
 
-__global__ void findTrianglesSum(cooFormat A, cooFormat C, int* sum, int* counter){
+__global__ void findTrianglesSum(csrFormat A, csrFormat C, int* sum, int* counter){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
     int tid = threadIdx.x; 
@@ -82,7 +82,7 @@ __global__ void findTrianglesSum(cooFormat A, cooFormat C, int* sum, int* counte
     __shared__ int totalSum[1024];
     
     for (int i=index;i<C.nnz;i+=stride){
-        totalSum[tid] = C.cooValA[index];
+        totalSum[tid] = C.csrVal[index];
         __syncthreads();
 
         for (int s=blockDim.x/2; s>0; s>>=1) {
@@ -103,12 +103,12 @@ __global__ void findTrianglesSum(cooFormat A, cooFormat C, int* sum, int* counte
 
     for (long i=index;i<C.nnz;i+=stride){
        
-        // atomicAdd(counter,C.cooValA[i]);
+        // atomicAdd(counter,C.csrValA[i]);
         // atomicAdd(counter,1);
     }
 }
 
-__global__ void findTrianglesShared(cooFormat A, cooFormat C, int* totalSum, int* counter){
+__global__ void findTrianglesShared(csrFormat A, csrFormat C, int* totalSum, int* counter){
 
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
@@ -122,22 +122,22 @@ __global__ void findTrianglesShared(cooFormat A, cooFormat C, int* totalSum, int
         *totalSum = 0;
     }
 
-    rowA[tid] = A.cooRowIndA[index];
-    colA[tid] = A.cooColIndA[index];
+    rowA[tid] = A.csrRowPtr[index];
+    colA[tid] = A.csrColInd[index];
     
 
     for (int i=0;i<C.nnz;i++){
         *counter = 0;
-        if ((rowA[tid] == C.cooRowIndA[i]) && (colA[tid] == C.cooColIndA[i])){
-            atomicAdd(totalSum,C.cooValA[i]);
+        if ((rowA[tid] == C.csrRowPtr[i]) && (colA[tid] == C.csrColInd[i])){
+            atomicAdd(totalSum,C.csrVal[i]);
             *counter = 1;
         }
         __syncthreads();
         if (*counter != 1){
             for (int j=(index+stride);j<A.nnz;j+=stride){
-                if ((A.cooColIndA[j] == C.cooColIndA[i]) && (A.cooRowIndA[j] == C.cooRowIndA[i])){
+                if ((A.csrColInd[j] == C.csrColInd[i]) && (A.csrRowPtr[j] == C.csrRowPtr[i])){
                     //atomicAdd(counter,1);
-                    atomicAdd(totalSum,C.cooValA[i]);
+                    atomicAdd(totalSum,C.csrVal[i]);
                     break;
                 }
             }
@@ -156,12 +156,12 @@ __global__ void findTrianglesShared(cooFormat A, cooFormat C, int* totalSum, int
 }
 
 
-void findTrianglesCPU(cooFormat* A, cooFormat* C){
+void findTrianglesCPU(csrFormat* A, csrFormat* C){
     int sum = 0;
     for (int i=0;i<C->nnz;i++){
        for (int j=0;j<A->nnz;j++){
-           if ((A->cooColIndA[j] == C->cooColIndA[i]) && (A->cooRowIndA[j] == C->cooRowIndA[i])){
-               sum += C->cooValA[i];
+           if ((A->csrColInd[j] == C->csrColInd[i]) && (A->csrRowPtr[j] == C->csrRowPtr[i])){
+               sum += C->csrVal[i];
                break;
            }
        }

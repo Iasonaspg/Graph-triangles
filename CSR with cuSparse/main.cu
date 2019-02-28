@@ -25,7 +25,7 @@ int main(int argc, char** argv){
     int N, M, nT_Mat;
     double matlab_time;
 
-    cooFormat A, C;
+    csrFormat A, C;
 
     readCSV(fName, &A, &N, &M, &nT_Mat, &matlab_time);
 
@@ -42,15 +42,15 @@ int main(int argc, char** argv){
     int nnzA = A.nnz;
     cudaMallocManaged(&devVal,nnzA*sizeof(float));
     cudaMallocManaged(&devCol,nnzA*sizeof(int));
-    cudaMallocManaged(&devRow,nnzA*sizeof(int));
-    cudaMemcpy(devVal,A.cooValA,nnzA*sizeof(float),cudaMemcpyHostToDevice);
-    cudaMemcpy(devCol,A.cooColIndA,nnzA*sizeof(int),cudaMemcpyHostToDevice);
-    cudaMemcpy(devRow,A.cooRowIndA,nnzA*sizeof(int),cudaMemcpyHostToDevice);
+    cudaMallocManaged(&devRow,(N+1)*sizeof(int));
+    cudaMemcpy(devVal,A.csrVal,nnzA*sizeof(float),cudaMemcpyHostToDevice);
+    cudaMemcpy(devCol,A.csrColInd,nnzA*sizeof(int),cudaMemcpyHostToDevice);
+    cudaMemcpy(devRow,A.csrRowPtr,(N+1)*sizeof(int),cudaMemcpyHostToDevice);
 
-    cooFormat B;
-    B.cooColIndA = devCol;
-    B.cooRowIndA = devRow;
-    B.cooValA = devVal;
+    csrFormat B;
+    B.csrColInd = devCol;
+    B.csrRowPtr = devRow;
+    B.csrVal = devVal;
     B.nnz = A.nnz;
 
     int* sum, *counter, *counter1, *counter2;
@@ -60,11 +60,11 @@ int main(int argc, char** argv){
     cudaMallocManaged(&counter2,sizeof(int));
 
     double st1 = cpuSecond();
-    filter<<<160,1024>>>(B,C,counter1,counter2);
+    //filter<<<160,1024>>>(B,C,counter1,counter2);
     CHECK(cudaPeekAtLastError());
     CHECK(cudaDeviceSynchronize());
-    printf("Time filtering on GPU: %lf sec\n",cpuSecond()-st1);
-    printf("Vrhka tosa simeia: %d kai midenisa tosa: %d\n",*counter1,*counter2);
+    //printf("Time filtering on GPU: %lf sec\n",cpuSecond()-st1);
+    //printf("Vrhka tosa simeia: %d kai midenisa tosa: %d\n",*counter1,*counter2);
 
     double st2 = cpuSecond();
     //findTrianglesShared<<<160,1024>>>(B,C,sum,counter);
@@ -75,12 +75,12 @@ int main(int argc, char** argv){
     double st3 = cpuSecond();
     *sum = 0;
     *counter = 0;
-    findTrianglesSum<<<160,1024>>>(B,C,sum,counter);
+    //findTrianglesSum<<<160,1024>>>(B,C,sum,counter);
     CHECK(cudaPeekAtLastError());
     CHECK(cudaDeviceSynchronize());
-    printf("Triangles: %d\n",sum[0]/6);
-    printf("Triangles naive: %d\n",counter[0]/6);
-    printf("Time on GPU using memory: %lf sec\n",cpuSecond()-st3);
+    //printf("Triangles: %d\n",sum[0]/6);
+    //printf("Triangles naive: %d\n",counter[0]/6);
+    //printf("Time on GPU using memory: %lf sec\n",cpuSecond()-st3);
     
     double st = cpuSecond();
     //findTrianglesCPU(&B,&C);

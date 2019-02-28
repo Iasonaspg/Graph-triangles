@@ -8,27 +8,27 @@
  *
  **********************************************************************/
 
-/* Struct for Sparse Matrix type in the Coordinate Format (COO) */
-typedef struct Sparse_Matrix_in_COO_format {
+/* Struct for Sparse Matrix type in the Coordinate Format (CSR) */
+typedef struct Sparse_Matrix_in_CSR_format {
    int   nnz;
-   float* cooValA;
-   int* cooRowIndA;
-   int* cooColIndA;
-}cooFormat;
+   float* csrVal;
+   int* csrRowPtr;
+   int* csrColInd;
+}csrFormat;
 
 #ifndef READ_CSV_H
 #define READ_CSV_H
 
-int readCSV(char* fName, struct Sparse_Matrix_in_COO_format *A, int* N, int* M, int* nT_Mat, double* matlab_time);
-int split(char* str, char* delim, long* args);
+int readCSV(char* fName, csrFormat *A, int* N, int* M, int* nT_Mat, double* matlab_time);
+int split_line_int(char* str, char* delim, int* args);
 char *trim_space(char *in);
 int findLines(char* fName);
-void mulSparse(cooFormat* A, cooFormat* C, int N);
+void mulSparse(csrFormat* A, csrFormat* C, int N);
 double cpuSecond();
-__global__ void filter(cooFormat A, cooFormat C, int* counter1, int* counter2);
-__global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter);
-__global__ void findTrianglesShared(cooFormat A, cooFormat C, int* totalSum, int* counter);
-__global__ void findTrianglesSum(cooFormat A, cooFormat C, int* totalSum, int* counter);
+__global__ void filter(csrFormat A, csrFormat C, int* counter1, int* counter2);
+__global__ void findTriangles(csrFormat A, csrFormat C, int* sum, int* counter);
+__global__ void findTrianglesShared(csrFormat A, csrFormat C, int* totalSum, int* counter);
+__global__ void findTrianglesSum(csrFormat A, csrFormat C, int* totalSum, int* counter);
 
 #define CHECK(call) \
 {                    \

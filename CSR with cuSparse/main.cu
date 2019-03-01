@@ -67,28 +67,23 @@ int main(int argc, char** argv){
     //printf("Vrhka tosa simeia: %d kai midenisa tosa: %d\n",*counter1,*counter2);
 
     double st2 = cpuSecond();
-    //findTrianglesShared<<<160,1024>>>(B,C,sum,counter);
+    // findTriangles<<<160,1024>>>(B,C,sum,counter);
     CHECK(cudaPeekAtLastError());
     CHECK(cudaDeviceSynchronize());
-    //printf("Time on GPU using shared memory: %lf sec\n",cpuSecond()-st2);
+    // printf("Time on GPU: %lf sec\n",cpuSecond()-st2);
 
     double st3 = cpuSecond();
     *sum = 0;
-    *counter = 0;
-    //findTrianglesSum<<<160,1024>>>(B,C,sum,counter);
+    findTriangles<<<160,1024>>>(B,C,sum,N);
     CHECK(cudaPeekAtLastError());
     CHECK(cudaDeviceSynchronize());
-    //printf("Triangles: %d\n",sum[0]/6);
+    printf("Triangles using CSR format: %d\n",sum[0]/6);
     //printf("Triangles naive: %d\n",counter[0]/6);
-    //printf("Time on GPU using memory: %lf sec\n",cpuSecond()-st3);
+    printf("Time on GPU using CSR format: %lf sec\n",cpuSecond()-st3);
     
     double st = cpuSecond();
-    findTrianglesCPU(&B,&C,N);
-    printf("Time on CPU: %lf sec\n",cpuSecond()-st);
-
-    // for (int i=0;i<9;i++){
-    // printf("Sample: %f\n",C.cooValA[i]);
-    // }
+    // findTrianglesCPU(&B,&C,N);
+    // printf("Time on CPU: %lf sec\n",cpuSecond()-st);
     
     return 0; 
 }

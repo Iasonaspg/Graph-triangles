@@ -44,33 +44,23 @@ __global__ void filter(csrFormat A, csrFormat C, int* counter1, int* counter2){
 }
 
 
-__global__ void findTriangles(csrFormat A, csrFormat C, int* sum, int* counter){
+__global__ void findTriangles(csrFormat A, csrFormat C, int* sum, int N){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
-    int index1 = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
      
-
-    if (threadIdx.x == 0 && blockIdx.x == 0){
-        *sum = 0;
+   
+    for (int i=index;i<C.nnz;i+=stride){
+        for (int j=0;j<N;j++){
+            for (int k=A.csrRowPtr[j];k<A.csrRowPtr[j+1];k++){
+                if ((A.csrColInd[k] == C.csrColInd[i]) && (i >= C.csrRowPtr[j]) && (i < C.csrRowPtr[j+1])){
+                    atomicAdd(sum,C.csrVal[i]);
+                    j = N;
+                    break;
+                }
+            }
+           
+        }
     }
-    
-    for (long i=index;i<C.nnz;i+=stride){
-       for (int j=0;j<A.nnz;j++){
-           if ((A.csrColInd[j] == C.csrColInd[i]) && (A.csrRowPtr[j] == C.csrRowPtr[i])){
-                atomicAdd(counter,1);
-                atomicAdd(sum,C.csrVal[i]);
-                break;
-           }
-       }
-    //    __syncthreads();
-    }
-    
-    __syncthreads();
-    if (threadIdx.x == 0 && blockIdx.x == 0){
-        printf("Triangles on GPU: %d\n",sum[0]/6);
-        printf("Mphka: %d\n",*counter);
-    }
-    
 }
 
 
@@ -108,61 +98,13 @@ __global__ void findTrianglesSum(csrFormat A, csrFormat C, int* sum, int* counte
     }
 }
 
-__global__ void findTrianglesShared(csrFormat A, csrFormat C, int* totalSum, int* counter){
-
-    int index = threadIdx.x + blockIdx.x*blockDim.x;
-    int stride = blockDim.x * gridDim.x;
-    int tid = threadIdx.x;
-    
-    __shared__ int rowA[1024];
-    __shared__ int colA[1024];
-    
-
-    if (threadIdx.x == 0 && blockIdx.x == 0){
-        *totalSum = 0;
-    }
-
-    rowA[tid] = A.csrRowPtr[index];
-    colA[tid] = A.csrColInd[index];
-    
-
-    for (int i=0;i<C.nnz;i++){
-        *counter = 0;
-        if ((rowA[tid] == C.csrRowPtr[i]) && (colA[tid] == C.csrColInd[i])){
-            atomicAdd(totalSum,C.csrVal[i]);
-            *counter = 1;
-        }
-        __syncthreads();
-        if (*counter != 1){
-            for (int j=(index+stride);j<A.nnz;j+=stride){
-                if ((A.csrColInd[j] == C.csrColInd[i]) && (A.csrRowPtr[j] == C.csrRowPtr[i])){
-                    //atomicAdd(counter,1);
-                    atomicAdd(totalSum,C.csrVal[i]);
-                    break;
-                }
-            }
-        }
-        __syncthreads();   
-    }
-        
-
-    __syncthreads();
-
-    if (threadIdx.x == 0 && blockIdx.x == 0){
-        printf("Triangles on GPU with shared memory: %d\n",totalSum[0]/6);
-        // printf("Mphka: %d\n",*counter);
-    }
-
-}
-
-
 void findTrianglesCPU(csrFormat* A, csrFormat* C, int N){
     int sum = 0;
-    for (int i=0;i<C->nnz;i++){
+    for (int i=0;i<A->nnz;i++){
         for (int j=0;j<N;j++){
-            for (int k=A->csrRowPtr[j];k<A->csrRowPtr[j+1];k++){
-                if ((A->csrColInd[k] == C->csrColInd[i]) && (i >= C->csrRowPtr[j]) && (i < C->csrRowPtr[j+1])){
-                    sum += C->csrVal[i];
+            for (int k=C->csrRowPtr[j];k<C->csrRowPtr[j+1];k++){
+                if ((C->csrColInd[k] == A->csrColInd[i]) && (i >= A->csrRowPtr[j]) && (i < A->csrRowPtr[j+1])){
+                    sum += C->csrVal[k];
                     j = N;
                     break;
                 }

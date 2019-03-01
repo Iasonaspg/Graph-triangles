@@ -123,6 +123,7 @@ int readCSV_COO(char* fName, cooFormat* A, cooFormat* B){
         exit(EXIT_FAILURE);
     }
 
+    i = 0;
     while (( getline(&line, &len, fp)) != -1){
         
         token = strtok(line, ",");

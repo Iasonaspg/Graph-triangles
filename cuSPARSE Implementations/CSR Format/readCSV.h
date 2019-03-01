@@ -8,6 +8,9 @@
  *
  **********************************************************************/
 
+#ifndef READ_CSV_H
+#define READ_CSV_H
+
 /* Struct for Sparse Matrix type in the Compressed Sparse Row Format (CSR) */
 typedef struct Sparse_Matrix_in_CSR_format {
    int 		nnz;
@@ -23,9 +26,6 @@ typedef struct Sparse_Matrix_in_COO_format {
    int* 	cooRowInd;
    int* 	cooColInd;
 }cooFormat;
-
-#ifndef READ_CSV_H
-#define READ_CSV_H
 
 int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matlab_time);
 int readCSV_COO(char* fName, cooFormat* A_COO, cooFormat* B);

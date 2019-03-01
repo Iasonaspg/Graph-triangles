@@ -31,10 +31,9 @@ int main (int argc, char **argv) {
     printf("--Reading Input Data from CSV file: Started--\n");    
     readCSV(argv[1], &h_A, &N, &M, &nT_Mat, &matlab_time);
     printf("--Reading Input Data from CSV file: DONE!--\n");    
-  }
-  else {
+  } else {
     printf("Usage: ./trianglesGPU <CSVfileName>\n");
-    printf(" where <CSVfileName.csv> is the name of the input data file (auto | great-britain_osm | delaunay_n22 | delaunay_n10)\n");
+    printf(" where <CSVfileName>.csv is the name of the input data file (auto | great-britain_osm | delaunay_n22 | delaunay_n10)\n");
     printf("No need for suffix '.csv'\n");
     exit(1);
   }
@@ -73,6 +72,8 @@ int main (int argc, char **argv) {
   so that the summation result is valid */
   cuZeroVariable<<<1,1>>>( d_nT );
 
+  CUDA_CALL(cudaDeviceSynchronize());
+
   /* Timer variables setup */
   cudaEvent_t start, stop;
   cudaEventCreate(&start);
@@ -103,7 +104,10 @@ int main (int argc, char **argv) {
   CUDA_CALL(cudaMemcpy(h_nT, d_nT, 1 * sizeof(int), cudaMemcpyDeviceToHost));
 
   /* Validating the result */
-  int pass = validation(h_nT[0]/3, nT_Mat);    // Executing the nT*(1/6), that was omitted in cuFindTriangles
+  // Executing the nT = nT*(1/6), that was omitted in cuFindTriangles
+  int pass = validation(*h_nT/3, nT_Mat);    
+  // though as of condition if ( col>row ) we have cut additions to half
+  // due to the symmetry of the adjacency matrix, so 2*(nT/6) = nT/3
   assert(pass != 0);
 
   /* Calculate elapsed time */
@@ -111,7 +115,7 @@ int main (int argc, char **argv) {
   cudaEventElapsedTime(&milliseconds, start, stop);
 
   /* Timer display */
-  printf("  -GPU number of triangles nT: %d, Wall clock time: %fms ( < %lf ( Matlab Time ) )\n", h_nT[0]/3, milliseconds, matlab_time);
+  printf("  -GPU number of triangles nT: %d, Wall clock time: %fms ( < %lf ( Matlab Time ) )\n", *h_nT/3, milliseconds, matlab_time);
 
             /* Write the results into file */
             FILE *fp;

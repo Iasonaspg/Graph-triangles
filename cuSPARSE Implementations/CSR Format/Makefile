@@ -13,7 +13,7 @@
  #
 ######################################################################
 
-PROJECT_NAME = triangles
+PROJECT_NAME = trianglesCUSPARSE
 
 # NVCC is path to nvcc. Here it is assumed /usr/local/cuda is on one's PATH.
 # CC is the compiler for C host code.
@@ -24,7 +24,7 @@ CC = gcc
 CUDAPATH = /usr/local/cuda
 
 CFLAGS = -c -I $(CUDAPATH)/include
-NVCCFLAGS = -c -I $(CUDAPATH)/include -Wno-deprecated-gpu-targets
+NVCCFLAGS = -O3 -c -I $(CUDAPATH)/include -Wno-deprecated-gpu-targets
 
 LFLAGS = -L$(CUDAPATH)/lib -lcuda -lcusparse -Wno-deprecated-gpu-targets -ftz=true #here of above?
 

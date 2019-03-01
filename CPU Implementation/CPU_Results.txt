@@ -1,10 +1,11 @@
-1.586611
-1.574903
-1.645822
-0.001830
-0.460893
-1.547349
-1.661894
-1.411199		"auto"
+
+====================   C P U   ====================
+" Initial Implementation "
 1.684392		"delaunay_n22"
+1.411199		"auto"
 0.440514		"great-britain_osm"
+
+" Removed csrVal + Added condition if ( col>row ) "
+0.841656		"delaunay_n22"
+0.503872		"auto"
+0.209014		"great-britain_osm"

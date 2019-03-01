@@ -1,23 +1,27 @@
-/**********************************************************************
+/******************************************************************************
  *
- * cuTrianglesFinder.h -- Find the number of triangles in graph kernel
+ * cuFindTriangles.h -- The kernel that calculates the Number of triangles into
+ *                       a graph given the CSR format of its Adjacency Matrix
  *
  * Michail Iason Pavlidis <michailpg@ece.auth.gr>
  * John Flionis <iflionis@auth.gr>
  *
- **********************************************************************/
+ ******************************************************************************/
 
-#ifndef CU_TRIANGLE_FINDER_H
-#define CU_TRIANGLE_FINDER_H
+#ifndef CU_FIND_TRIANGLES_H
+#define CU_FIND_TRIANGLES_H
 
 #include <math.h>
 #include <stdio.h>
 #include <stdlib.h>
 
 __global__
-void cuTrianglesFinder(int* C, int N, int nT);
+void cuZeroVariable(int* nT);
 
-#endif /* CU_TRIANGLE_FINDER_H */
+__global__
+void cuTrianglesFinderHadamardOnly(csrFormat A, csrFormat B, int N, int* nT);
+
+#endif /* CU_FIND_TRIANGLES_H */
 
 
 #ifndef CUDA_CALL
@@ -27,7 +31,6 @@ void cuTrianglesFinder(int* C, int N, int nT);
     __FILE__,__LINE__);\
     return EXIT_FAILURE;}} while(0)
 #endif
-
 
 #ifndef CHECK_CUSPARSE
 #define CHECK_CUSPARSE(call)                                                   \
@@ -45,4 +48,4 @@ void cuTrianglesFinder(int* C, int N, int nT);
         exit(1);                                                               \
     }                                                                          \
 }
-#endif
+#endif    

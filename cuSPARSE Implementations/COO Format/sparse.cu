@@ -73,4 +73,12 @@ void mulSparse(cooFormat* A, cooFormat* C, int N){
     C->cooValA = d_C;
     C->cooRowIndA = cooRowC;
     C->cooColIndA =  d_C_ColIndices;
+
+    cudaFree(devCol);
+    cudaFree(devVal);
+    cudaFree(devRow);
+
+    cusparseDestroyMatDescr(descrA);
+    cusparseDestroyMatDescr(descrC);
+    cusparseDestroy(handle);
 }

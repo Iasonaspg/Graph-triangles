@@ -24,6 +24,7 @@ int split(char* str, char* delim, long* args);
 char *trim_space(char *in);
 int findLines(char* fName);
 void mulSparse(cooFormat* A, cooFormat* C, int N);
+void findTrianglesCPU(cooFormat* A, cooFormat* C);
 double cpuSecond();
 __global__ void filter(cooFormat A, cooFormat C, int* counter1, int* counter2);
 __global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter);

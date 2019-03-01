@@ -156,15 +156,19 @@ __global__ void findTrianglesShared(csrFormat A, csrFormat C, int* totalSum, int
 }
 
 
-void findTrianglesCPU(csrFormat* A, csrFormat* C){
+void findTrianglesCPU(csrFormat* A, csrFormat* C, int N){
     int sum = 0;
     for (int i=0;i<C->nnz;i++){
-       for (int j=0;j<A->nnz;j++){
-           if ((A->csrColInd[j] == C->csrColInd[i]) && (A->csrRowPtr[j] == C->csrRowPtr[i])){
-               sum += C->csrVal[i];
-               break;
-           }
-       }
+        for (int j=0;j<N;j++){
+            for (int k=A->csrRowPtr[j];k<A->csrRowPtr[j+1];k++){
+                if ((A->csrColInd[k] == C->csrColInd[i]) && (i >= C->csrRowPtr[j]) && (i < C->csrRowPtr[j+1])){
+                    sum += C->csrVal[i];
+                    j = N;
+                    break;
+                }
+            }
+           
+        }
     }
     printf("Triangles on CPU: %d\n",sum/6);
 }

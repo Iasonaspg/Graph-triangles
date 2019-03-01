@@ -59,12 +59,13 @@ int main(int argc, char** argv){
     cudaMallocManaged(&counter1,sizeof(int));
     cudaMallocManaged(&counter2,sizeof(int));
 
+    *sum = 0;
     double st1 = cpuSecond();
-    filter<<<160,1024>>>(B,C,counter1,counter2);
+    filter<<<160,1024>>>(B,C,sum,counter2);
     CHECK(cudaPeekAtLastError());
     CHECK(cudaDeviceSynchronize());
     printf("Time filtering on GPU: %lf sec\n",cpuSecond()-st1);
-    printf("Vrhka tosa simeia: %d kai midenisa tosa: %d\n",*counter1,*counter2);
+    // printf("Vrhka tosa simeia: %d kai midenisa tosa: %d\n",*counter1,*counter2);
 
     double st2 = cpuSecond();
     //findTrianglesShared<<<160,1024>>>(B,C,sum,counter);
@@ -73,18 +74,18 @@ int main(int argc, char** argv){
     //printf("Time on GPU using shared memory: %lf sec\n",cpuSecond()-st2);
 
     double st3 = cpuSecond();
-    *sum = 0;
+    
     *counter = 0;
-    findTrianglesSum<<<160,1024>>>(B,C,sum,counter);
+    //findTrianglesSum<<<160,1024>>>(B,C,sum,counter);
     CHECK(cudaPeekAtLastError());
     CHECK(cudaDeviceSynchronize());
     printf("Triangles: %d\n",sum[0]/6);
-    printf("Triangles naive: %d\n",counter[0]/6);
-    printf("Time on GPU using memory: %lf sec\n",cpuSecond()-st3);
+    // printf("Triangles naive: %d\n",counter[0]/6);
+    // printf("Time on GPU using memory: %lf sec\n",cpuSecond()-st3);
     
     double st = cpuSecond();
-    //findTrianglesCPU(&B,&C);
-    //printf("Time on CPU: %lf sec\n",cpuSecond()-st);
+    // findTrianglesCPU(&B,&C);
+    // printf("Time on CPU: %lf sec\n",cpuSecond()-st);
 
     // for (int i=0;i<9;i++){
     // printf("Sample: %f\n",C.cooValA[i]);

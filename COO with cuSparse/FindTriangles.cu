@@ -18,28 +18,27 @@
  #include "readCSV.h"
 
 
-__global__ void filter(cooFormat A, cooFormat C, int* counter1, int* counter2){
+__global__ void filter(cooFormat A, cooFormat C, int* sum, int* counter2){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
     
     if (threadIdx.x == 0 && blockIdx.x == 0){
-        *counter1 = 0;
         *counter2 = 0;
     }
 
-    for (int i=index;i<C.nnz;i+=stride){
-        int flag = 0;
-        for (int j=0;j<A.nnz;j++){
-            if ((A.cooColIndA[j] == C.cooColIndA[i]) && (A.cooRowIndA[j] == C.cooRowIndA[i])){
-                flag = 1;
-                //atomicAdd(counter1,1);
+    for (int i=index;i<A.nnz;i+=stride){
+        // int flag = 0;
+        for (int j=0;j<C.nnz;j++){
+            if ((A.cooColIndA[i] == C.cooColIndA[j]) && (A.cooRowIndA[i] == C.cooRowIndA[j])){
+                // flag = 1;
+                atomicAdd(sum,C.cooValA[j]);
                 break;
             }
         }
-        if (flag == 0){
-            C.cooValA[i] = 0;
-            //atomicAdd(counter2,1);
-        }
+        // if (flag == 0){
+        //     C.cooValA[i] = 0;
+        //     //atomicAdd(counter2,1);
+        // }
     }
 }
 
@@ -158,10 +157,10 @@ __global__ void findTrianglesShared(cooFormat A, cooFormat C, int* totalSum, int
 
 void findTrianglesCPU(cooFormat* A, cooFormat* C){
     int sum = 0;
-    for (int i=0;i<C->nnz;i++){
-       for (int j=0;j<A->nnz;j++){
-           if ((A->cooColIndA[j] == C->cooColIndA[i]) && (A->cooRowIndA[j] == C->cooRowIndA[i])){
-               sum += C->cooValA[i];
+    for (int i=0;i<A->nnz;i++){
+       for (int j=0;j<C->nnz;j++){
+           if ((A->cooColIndA[i] == C->cooColIndA[j]) && (A->cooRowIndA[i] == C->cooRowIndA[j])){
+               sum += C->cooValA[j];
                break;
            }
        }

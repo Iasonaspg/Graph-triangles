@@ -16,6 +16,7 @@
  #include <errno.h>
  #include <math.h>
  #include "readCSV.h"
+ #include "validation.h"
 
  
 
@@ -77,9 +78,13 @@ int main(int argc, char** argv){
     findTriangles<<<160,1024>>>(B,C,sum,N);
     CHECK(cudaPeekAtLastError());
     CHECK(cudaDeviceSynchronize());
-    printf("Triangles using CSR format: %d\n",sum[0]/6);
+    printf("Triangles using CSR format: %d\n",sum[0]/3);
     //printf("Triangles naive: %d\n",counter[0]/6);
     printf("Time on GPU using CSR format: %lf sec\n",cpuSecond()-st3);
+
+    if (validation(sum[0]/3,nT_Mat)){
+        printf("Validation on GPU: PASSED\n");
+    }
     
     double st = cpuSecond();
     // findTrianglesCPU(&B,&C,N);

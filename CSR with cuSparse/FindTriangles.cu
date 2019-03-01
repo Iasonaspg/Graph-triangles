@@ -51,14 +51,15 @@ __global__ void findTriangles(csrFormat A, csrFormat C, int* sum, int N){
    
     for (int i=index;i<C.nnz;i+=stride){
         for (int j=0;j<N;j++){
-            for (int k=A.csrRowPtr[j];k<A.csrRowPtr[j+1];k++){
-                if ((A.csrColInd[k] == C.csrColInd[i]) && (i >= C.csrRowPtr[j]) && (i < C.csrRowPtr[j+1])){
-                    atomicAdd(sum,C.csrVal[i]);
-                    j = N;
-                    break;
+            if (j < C.csrColInd[i]){
+                for (int k=A.csrRowPtr[j];k<A.csrRowPtr[j+1];k++){
+                    if ((A.csrColInd[k] == C.csrColInd[i]) && (i >= C.csrRowPtr[j]) && (i < C.csrRowPtr[j+1])){
+                        atomicAdd(sum,C.csrVal[i]);
+                        j = N;
+                        break;
+                    }
                 }
             }
-           
         }
     }
 }
@@ -102,14 +103,15 @@ void findTrianglesCPU(csrFormat* A, csrFormat* C, int N){
     int sum = 0;
     for (int i=0;i<A->nnz;i++){
         for (int j=0;j<N;j++){
-            for (int k=C->csrRowPtr[j];k<C->csrRowPtr[j+1];k++){
-                if ((C->csrColInd[k] == A->csrColInd[i]) && (i >= A->csrRowPtr[j]) && (i < A->csrRowPtr[j+1])){
-                    sum += C->csrVal[k];
-                    j = N;
-                    break;
+            if (j < A->csrColInd[i]){
+                for (int k=C->csrRowPtr[j];k<C->csrRowPtr[j+1];k++){
+                    if ((C->csrColInd[k] == A->csrColInd[i]) && (i >= A->csrRowPtr[j]) && (i < A->csrRowPtr[j+1])){
+                        sum += C->csrVal[k];
+                        j = N;
+                        break;
+                    }
                 }
             }
-           
         }
     }
     printf("Triangles on CPU: %d\n",sum/6);

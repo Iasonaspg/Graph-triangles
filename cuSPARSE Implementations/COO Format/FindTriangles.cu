@@ -18,53 +18,43 @@
  #include "readCSV.h"
 
 
+//  Kernel that calculates Hadamard product of our arrays
 __global__ void filter(cooFormat A, cooFormat C, int* sum, int* counter2){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
     
-    if (threadIdx.x == 0 && blockIdx.x == 0){
-        *counter2 = 0;
-    }
-
     for (int i=index;i<C.nnz;i+=stride){
-        // int flag = 0;
         for (int j=0;j<A.nnz;j++){
             if ((C.cooColIndA[i] == A.cooColIndA[j]) && (C.cooRowIndA[i] == A.cooRowIndA[j])){
-                // flag = 1;
                 atomicAdd(sum,C.cooValA[i]);
                 break;
             }
         }
-        // if (flag == 0){
-        //     C.cooValA[i] = 0;
-        //     //atomicAdd(counter2,1);
-        // }
     }
 }
 
 
-__global__ void findTriangles(cooFormat A, cooFormat C, int* sum, int* counter){
+// Kernel that calculates the number of triangles on a given matrix
+__global__ void findTriangles(cooFormat A, cooFormat C, int* sum){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int index1 = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
      
-
-    
     
     for (long i=index;i<C.nnz;i+=stride){
-       for (int j=0;j<A.nnz;j++){
-           if ((A.cooColIndA[j] == C.cooColIndA[i]) && (A.cooRowIndA[j] == C.cooRowIndA[i])){
-                // atomicAdd(counter,1);
-                atomicAdd(sum,C.cooValA[i]);
-                break;
-           }
-       }
-    //    __syncthreads();
-    }
-    
+        if (C.cooColIndA[i] > C.cooRowIndA[i]){
+            for (int j=0;j<A.nnz;j++){
+                if ((A.cooColIndA[j] == C.cooColIndA[i]) && (A.cooRowIndA[j] == C.cooRowIndA[i])){
+                     atomicAdd(sum,C.cooValA[i]);
+                     break;
+                }
+            }
+        }
+    } 
 }
 
 
+// Kernel that sums the values of our array using reduction and shared memory
 __global__ void findTrianglesSum(cooFormat A, cooFormat C, int* sum, int* counter){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
@@ -99,15 +89,19 @@ __global__ void findTrianglesSum(cooFormat A, cooFormat C, int* sum, int* counte
     }
 }
 
-void findTrianglesCPU(cooFormat* A, cooFormat* C){
+// Function that finds the number of triangles
+int findTrianglesCPU(cooFormat* A, cooFormat* C){
     int sum = 0;
     for (int i=0;i<A->nnz;i++){
-       for (int j=0;j<C->nnz;j++){
-           if ((A->cooColIndA[i] == C->cooColIndA[j]) && (A->cooRowIndA[i] == C->cooRowIndA[j])){
-               sum += C->cooValA[j];
-               break;
-           }
-       }
+        if (A->cooColIndA[i] > A->cooRowIndA[i]){
+            for (int j=0;j<C->nnz;j++){
+                if ((A->cooColIndA[i] == C->cooColIndA[j]) && (A->cooRowIndA[i] == C->cooRowIndA[j])){
+                    sum += C->cooValA[j];
+                    break;
+                }
+            }    
+        }
     }
-    printf("Triangles on CPU: %d\n",sum/6);
+    printf("Triangles on CPU: %d\n",sum/3);
+    return sum/3;
 }

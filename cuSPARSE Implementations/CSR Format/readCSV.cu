@@ -23,32 +23,6 @@ char *trim_space(char *in);
 int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matlab_time);
 int readCSV_COO(char* fName, cooFormat* A, cooFormat* B);
 
-/*
-int main(int argc, char** argv){
-
-    char* fName = argv[1];
-    int N, M, nT_Mat;
-    double matlab_time;
-
-    csrFormat A;
-    cooFormat A_COO;
-
-    readCSV(fName, &A, &A_COO, &N, &M, &nT_Mat, &matlab_time);
-
-    printf("Input Data File Sample:\n");    
-    printf("nnz = %d\n", A.nnz);
-    for (int i=0;i<10;i++){
-        printf("csrVal: %f\n",A.csrVal[i]);
-        printf("csrRowPtr: %d\n",A.csrRowPtr[i]);
-        printf("csrColInd: %d\n",A.csrColInd[i]);
-    }
-
-    printf("Validation File:\n N = %d, M = %d\n Matlab result was %d, produced in %lf\n", N, M, nT_Mat, matlab_time);
-    
-    return 0; 
-}
-*/
-
 
 int readCSV_COO(char* fName, cooFormat* A, cooFormat* B){
 

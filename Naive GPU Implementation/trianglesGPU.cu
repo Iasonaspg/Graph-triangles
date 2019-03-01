@@ -33,7 +33,7 @@ int main (int argc, char **argv) {
     printf("--Reading Input Data from CSV file: DONE!--\n");    
   } else {
     printf("Usage: ./trianglesGPU <CSVfileName>\n"); // <N> <M>
-    printf(" where <CSVfileName.csv> is the name of the input data file (auto | great-britain_osm | delaunay_n22 | delaunay_n10)\n");
+    printf(" where <CSVfileName>.csv is the name of the input data file (auto | great-britain_osm | delaunay_n22 | delaunay_n10)\n");
     printf("No need for suffix '.csv'\n");
     exit(1);
   }

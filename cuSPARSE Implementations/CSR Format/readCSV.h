@@ -27,7 +27,7 @@ typedef struct Sparse_Matrix_in_COO_format {
 #ifndef READ_CSV_H
 #define READ_CSV_H
 
-int readCSV(char* fName, csrFormat* A, cooFormat* A_COO, int* N, int* M, int* nT_Mat, double* matlab_time);
-int readCSV_B(char* fName, cooFormat* B);
+int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matlab_time);
+int readCSV_COO(char* fName, cooFormat* A_COO, cooFormat* B);
 
 #endif /* READ_CSV_H */

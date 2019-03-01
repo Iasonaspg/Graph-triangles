@@ -1,8 +1,8 @@
 
 ====================   C P U   ====================
 " Initial Implementation "
-1.411199		"auto"
 1.684392		"delaunay_n22"
+1.411199		"auto"
 0.440514		"great-britain_osm"
 
 " Removed csrVal + Added condition if ( col>row ) "

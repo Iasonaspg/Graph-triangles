@@ -10,13 +10,8 @@
 0.503872		"auto"
 0.209014		"great-britain_osm"
 
-====================   G P U   ====================
-" Initial, No csrVal Edition "
-198.588638		"delaunay_n22"
-180.551620		"auto"
-32.521694		"great-britain_osm"
-
-" Added condition: if ( col>row ) "
-149.881088		"delaunay_n22"
-87.607422		"auto"
-25.070881		"great-britain_osm"
+====================   c u S P A R S E   ====================
+1542.604980		"delaunay_n22"
+27515.136719	"auto"
+1122.936523		"great-britain_osm"
+32029.755859

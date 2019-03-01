@@ -25,19 +25,25 @@ __global__
 /* Kernel function that finds the number of triangles formed in the graph */
 void cuFindTriangles(csrFormat A, int N, int* nT) {
 
+  // Each thread processes a different row
   int index = threadIdx.x + blockIdx.x*blockDim.x;
   int stride = blockDim.x * gridDim.x;
 
+  // Iterate over rows
   for (int row = index; row < N; row += stride) {
 
+      // Iterate over columns
       for (int j = A.csrRowPtr[row]; j < A.csrRowPtr[row+1]; j++) {
 
         int col = A.csrColInd[j];
         // [row, col] = position of 1 horizontally
 
         if ( col>row ) {
+        // OPTIMIZATION: Due to symmetry, nT of the upper half array is
+        // equal to half the nT, thus additions are cut down to half !           
           int beginPtr_csr_row = A.csrRowPtr[row];
           int beginPtr_csc_col = A.csrRowPtr[col];
+          // Multiplication of A[:,col] * A[row,:]      
           for (int k = beginPtr_csc_col; k < A.csrRowPtr[col+1]; k++) {
                   
             int csc_row = A.csrColInd[k];
@@ -50,6 +56,10 @@ void cuFindTriangles(csrFormat A, int N, int* nT) {
                 if ( csc_row == csr_col )
                     atomicAdd( nT, 1 );
                 else if ( csr_col > csc_row ) {
+                    // OPTIMIZATION: when col>row no need to go further,
+                    // continue to the next col, plus for further optimization
+                    // keep track of the beginPtr_csr_row where the previous
+                    // iteration stopped, so that no time is wasted in rechecking
                     beginPtr_csr_row = l;
                     break;
                 }

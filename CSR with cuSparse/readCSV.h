@@ -26,8 +26,7 @@ int findLines(char* fName);
 void mulSparse(csrFormat* A, csrFormat* C, int N);
 double cpuSecond();
 __global__ void filter(csrFormat A, csrFormat C, int* counter1, int* counter2);
-__global__ void findTriangles(csrFormat A, csrFormat C, int* sum, int* counter);
-__global__ void findTrianglesShared(csrFormat A, csrFormat C, int* totalSum, int* counter);
+__global__ void findTriangles(csrFormat A, csrFormat C, int* sum, int N);
 __global__ void findTrianglesSum(csrFormat A, csrFormat C, int* totalSum, int* counter);
 void findTrianglesCPU(csrFormat* A, csrFormat* C, int N);
 

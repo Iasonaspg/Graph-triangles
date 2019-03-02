@@ -29,7 +29,7 @@ close all
 basePath  = 'https://sparse.tamu.edu/mat';
 folderPath = './';
 groupName = 'DIMACS10';
-matName   = 'delaunay_n12'; % auto|great-britain_osm|delaunay_n22
+matName   = 'delaunay_n20'; % auto|great-britain_osm|delaunay_n22
 
 %% (BEGIN)
 
@@ -73,7 +73,7 @@ fprintf( '   - Writing CSV has started\n');
 fileID = fopen( [folderPath csvFileName], 'w');
 fprintf(fileID,'%d,%d\n',tr);
 
-N = length(Problem.A)
+N = length(Problem.A);
 M = length(lines)/2;
 
 clear Problem;

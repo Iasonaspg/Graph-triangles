@@ -8,9 +8,6 @@
  *
  **********************************************************************/
 
-#ifndef READ_CSV_H
-#define READ_CSV_H
-
 /* Struct for Sparse Matrix type in the Coordinate Format (COO) */
 typedef struct Sparse_Matrix_in_COO_format {
    int   nnz;
@@ -18,6 +15,9 @@ typedef struct Sparse_Matrix_in_COO_format {
    int* cooRowIndA;
    int* cooColIndA;
 }cooFormat;
+
+#ifndef READ_CSV_H
+#define READ_CSV_H
 
 int readCSV(char* fName, struct Sparse_Matrix_in_COO_format *A, int* N, int* M, int* nT_Mat, double* matlab_time);
 int split(char* str, char* delim, long* args);
@@ -42,3 +42,4 @@ __global__ void findTrianglesSum(cooFormat A, cooFormat C, int* totalSum, int* c
 } \
 
 #endif /* READ_CSV_H */
+

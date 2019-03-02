@@ -67,7 +67,7 @@ int readCSV(char* fName, cooFormat *A, int* N, int* M, int* nT_Mat, double* matl
 
     int leng = findLines(csvFileName);
 
-    // printf("Lines in the file are: %d\n",leng);   
+    printf("Lines in the file are: %d\n",leng);   
 
     A->nnz = leng;
 

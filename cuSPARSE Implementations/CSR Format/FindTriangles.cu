@@ -18,6 +18,29 @@
  #include "readCSV.h"
 
 
+// Kernel that calculates the number of triangles on our graph
+__global__ void findTriangles(csrFormat A, csrFormat C, int* sum, int N){
+    int index = threadIdx.x + blockIdx.x*blockDim.x;
+    int stride = blockDim.x * gridDim.x;
+     
+   
+    for (int i=index;i<N;i+=stride){
+        for (int j=A.csrRowPtr[i];j<A.csrRowPtr[i+1];j++){
+            if (A.csrColInd[j] > i){
+                for (int k=C.csrRowPtr[i];k<C.csrRowPtr[i+1];k++){
+                    if (A.csrColInd[j] == C.csrColInd[k]){
+                        atomicAdd(sum,C.csrVal[k]);
+                    }
+                    else if (C.csrColInd[k] > A.csrColInd[j]){
+                        break;
+                    }
+                }
+            }
+        }
+    }
+}
+
+
  // Kernel that is equivalent to Hadamard product in our case  
 __global__ void filter(csrFormat A, csrFormat C, int* counter1, int* counter2){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
@@ -40,28 +63,6 @@ __global__ void filter(csrFormat A, csrFormat C, int* counter1, int* counter2){
         if (flag == 0){
             C.csrVal[i] = 0;
             //atomicAdd(counter2,1);
-        }
-    }
-}
-
-
-// Kernel that calculated the nunmber of triangles on our graph
-__global__ void findTriangles(csrFormat A, csrFormat C, int* sum, int N){
-    int index = threadIdx.x + blockIdx.x*blockDim.x;
-    int stride = blockDim.x * gridDim.x;
-     
-   
-    for (int i=index;i<C.nnz;i+=stride){
-        for (int j=0;j<N;j++){
-            if (j < C.csrColInd[i]){
-                for (int k=A.csrRowPtr[j];k<A.csrRowPtr[j+1];k++){
-                    if ((A.csrColInd[k] == C.csrColInd[i]) && (i >= C.csrRowPtr[j]) && (i < C.csrRowPtr[j+1])){
-                        atomicAdd(sum,C.csrVal[i]);
-                        j = N;
-                        break;
-                    }
-                }
-            }
         }
     }
 }
@@ -105,13 +106,14 @@ __global__ void findTrianglesSum(csrFormat A, csrFormat C, int* sum, int* counte
 // Function that finds the number of triangles on CPU
 int findTrianglesCPU(csrFormat* A, csrFormat* C, int N){
     int sum = 0;
-    for (int i=0;i<A->nnz;i++){
-        for (int j=0;j<N;j++){
-            if (j < A->csrColInd[i]){
-                for (int k=C->csrRowPtr[j];k<C->csrRowPtr[j+1];k++){
-                    if ((C->csrColInd[k] == A->csrColInd[i]) && (i >= A->csrRowPtr[j]) && (i < A->csrRowPtr[j+1])){
+    for (int i=0;i<N;i++){
+        for (int j=A->csrRowPtr[i];j<A->csrRowPtr[i+1];j++){
+            if (A->csrColInd[j] > i){
+                for (int k=C->csrRowPtr[i];k<C->csrRowPtr[i+1];k++){
+                    if (A->csrColInd[j] == C->csrColInd[k]){
                         sum += C->csrVal[k];
-                        j = N;
+                    }
+                    else if (C->csrColInd[k] > A->csrColInd[j]){
                         break;
                     }
                 }

@@ -90,35 +90,8 @@ int main(int argc, char** argv){
         printf("Validation on GPU: PASSED\n");
     }
 
-    // Move C to host memory to call cpu function
-    // float* h_val = (float*)malloc(C.nnz*sizeof(float));
-    // int* h_col = (int*)malloc(C.nnz*sizeof(int));
-    // int* h_row = (int*)malloc(C.nnz*sizeof(int));
-    // CHECK(cudaMemcpy(h_val,C.cooValA,C.nnz*sizeof(float),cudaMemcpyDeviceToHost));
-    // CHECK(cudaMemcpy(h_col,C.cooColIndA,C.nnz*sizeof(int),cudaMemcpyDeviceToHost));
-    // CHECK(cudaMemcpy(h_row,C.cooRowIndA,C.nnz*sizeof(int),cudaMemcpyDeviceToHost));
-
-    //// Pass it through a struct
-    // cooFormat D;
-    // D.cooColIndA = h_col;
-    // D.cooRowIndA = h_row;
-    // D.cooValA = h_val;
-    // D.nnz = C.nnz;
-
-
-    // double st = cpuSecond();
-    // int triangles = findTrianglesCPU(&A,&D);
-    // printf("Time on CPU: %lf sec\n",cpuSecond()-st);
-
-    // if (validation(triangles,nT_Mat)){
-    //     printf("Validation on CPU: PASSED\n");
-    // }
-    
     
     free(h_sum);
-    free(h_col);
-    free(h_val);
-    free(h_row);
     cudaFree(devCol);
     cudaFree(devRow);
     cudaFree(devVal);

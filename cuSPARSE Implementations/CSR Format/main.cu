@@ -94,35 +94,7 @@ int main(int argc, char** argv){
     }
     
 
-    // Bring matrix C back to host memory to call CPU function
-    float* h_val = (float*)malloc(C.nnz*sizeof(float));
-    int* h_col = (int*)malloc(C.nnz*sizeof(int));
-    int* h_row = (int*)malloc((N+1)*sizeof(int));
-    CHECK(cudaMemcpy(h_val,C.csrVal,C.nnz*sizeof(float),cudaMemcpyDeviceToHost));
-    CHECK(cudaMemcpy(h_col,C.csrColInd,C.nnz*sizeof(int),cudaMemcpyDeviceToHost));
-    CHECK(cudaMemcpy(h_row,C.csrRowPtr,(N+1)*sizeof(int),cudaMemcpyDeviceToHost));
-
-    // Pass it through a struct
-    csrFormat D;
-    D.csrColInd = h_col;
-    D.csrRowPtr = h_row;
-    D.csrVal = h_val;
-    D.nnz = C.nnz;
-
-
-    double st = cpuSecond();
-    int triangles = findTrianglesCPU(&A,&D,N);
-    printf("Time on CPU: %lf sec\n",cpuSecond()-st);
-
-    if (validation(triangles,nT_Mat)){
-        printf("Validation on CPU: PASSED\n");
-    }
-    
-    
     free(h_sum);
-    free(h_col);
-    free(h_val);
-    free(h_row);
     cudaFree(devCol);
     cudaFree(devRow);
     cudaFree(devVal);

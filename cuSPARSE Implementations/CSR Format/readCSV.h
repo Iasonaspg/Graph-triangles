@@ -24,11 +24,12 @@ int split_line_int(char* str, char* delim, int* args);
 char *trim_space(char *in);
 int findLines(char* fName);
 void mulSparse(csrFormat* A, csrFormat* C, int N);
+int findTrianglesCPU(csrFormat* A, csrFormat* C, int N);
 double cpuSecond();
 __global__ void filter(csrFormat A, csrFormat C, int* counter1, int* counter2);
 __global__ void findTriangles(csrFormat A, csrFormat C, int* sum, int N);
 __global__ void findTrianglesSum(csrFormat A, csrFormat C, int* totalSum, int* counter);
-int findTrianglesCPU(csrFormat* A, csrFormat* C, int N);
+
 
 #define CHECK(call) \
 {                    \

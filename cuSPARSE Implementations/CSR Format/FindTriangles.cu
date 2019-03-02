@@ -51,18 +51,20 @@ __global__ void findTriangles(csrFormat A, csrFormat C, int* sum, int N){
     int stride = blockDim.x * gridDim.x;
      
    
-    for (int i=index;i<C.nnz;i+=stride){
-        for (int j=0;j<N;j++){
-            if (j < C.csrColInd[i]){
-                for (int k=A.csrRowPtr[j];k<A.csrRowPtr[j+1];k++){
-                    if ((A.csrColInd[k] == C.csrColInd[i]) && (i >= C.csrRowPtr[j]) && (i < C.csrRowPtr[j+1])){
-                        atomicAdd(sum,C.csrVal[i]);
-                        j = N;
+    for (int i=index;i<N;i+=stride){
+        for (int j=A.csrRowPtr[i];j<A.csrRowPtr[i+1];j++){
+            if (A.csrColInd[j] > i){
+                for (int k=C.csrRowPtr[i];k<C.csrRowPtr[i+1];k++){
+                    if (A.csrColInd[j] == C.csrColInd[k]){
+                        atomicAdd(sum,C.csrVal[k]);
+                    }
+                    else if (C.csrColInd[k] > A.csrColInd[j]){
                         break;
                     }
                 }
             }
         }
+
     }
 }
 

@@ -26,7 +26,7 @@ close all
 %% PARAMETERS
 
 basePath  = 'https://sparse.tamu.edu/mat';
-folderPath = '/home/johnfli/Code/PD_4/Data';
+folderPath = './';
 groupName = 'DIMACS10';
 matName   = 'delaunay_n10'; % auto|great-britain_osm|delaunay_n22
 

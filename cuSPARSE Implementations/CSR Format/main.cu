@@ -94,6 +94,9 @@ int main(int argc, char** argv){
     }
     
 
+    free(A.csrVal);
+    free(A.csrColInd);
+    free(A.csrRowPtr);
     free(h_sum);
     cudaFree(devCol);
     cudaFree(devRow);

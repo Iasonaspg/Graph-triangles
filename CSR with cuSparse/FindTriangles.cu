@@ -18,6 +18,7 @@
  #include "readCSV.h"
 
 
+ // Kernel that is equivalent to Hadamard product in our case  
 __global__ void filter(csrFormat A, csrFormat C, int* counter1, int* counter2){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
@@ -44,6 +45,7 @@ __global__ void filter(csrFormat A, csrFormat C, int* counter1, int* counter2){
 }
 
 
+// Kernel that calculated the nunmber of triangles on our graph
 __global__ void findTriangles(csrFormat A, csrFormat C, int* sum, int N){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
@@ -65,6 +67,7 @@ __global__ void findTriangles(csrFormat A, csrFormat C, int* sum, int N){
 }
 
 
+// Kernel that sums the values of a matrix using shared memory and block reduction 
 __global__ void findTrianglesSum(csrFormat A, csrFormat C, int* sum, int* counter){
     int index = threadIdx.x + blockIdx.x*blockDim.x;
     int stride = blockDim.x * gridDim.x;
@@ -99,7 +102,8 @@ __global__ void findTrianglesSum(csrFormat A, csrFormat C, int* sum, int* counte
     }
 }
 
-void findTrianglesCPU(csrFormat* A, csrFormat* C, int N){
+// Function that finds the number of triangles on CPU
+int findTrianglesCPU(csrFormat* A, csrFormat* C, int N){
     int sum = 0;
     for (int i=0;i<A->nnz;i++){
         for (int j=0;j<N;j++){
@@ -114,5 +118,6 @@ void findTrianglesCPU(csrFormat* A, csrFormat* C, int N){
             }
         }
     }
-    printf("Triangles on CPU: %d\n",sum/6);
+    printf("Triangles on CPU: %d\n",sum/3);
+    return sum/3;
 }

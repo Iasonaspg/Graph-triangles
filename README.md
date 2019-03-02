@@ -42,4 +42,4 @@ The Matlab script that was given to us contained minor errors, plus we added som
 
 5) Make
 
-6) Execute ( ex. ./trianglesCPU auto OR ./trianglesGPU delaunay_n10 ) 
+6) Execute ( ex. `./trianglesCPU auto` OR `./trianglesGPU delaunay_n10` ) 

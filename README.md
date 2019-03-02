@@ -34,7 +34,7 @@ The Matlab script that was given to us contained minor errors, plus we added som
 	/ Alternatively, you can download the input files straight from the link provided into the report
 
 3) Create a folder called Data into the main folder of the repo and move the input file in there
-	/ Alternatively, you can line 62: "strcpy(csvFileName,  "../Data/DataDIMACS10_");"" of every readCSV.c/cu file and set the path to the path to the desired, not recommended )
+	/ Alternatively, you can change appropriately line 62: "strcpy(csvFileName,  "../Data/DataDIMACS10_");"" of every readCSV.c/cu file and set the path to the the desired one - not recommended )
 ( if all the previous are ommited, there will be no input file for the code to use, thus it won't operate ) 
 
 4) Navigate to the folder of any implementation

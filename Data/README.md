@@ -1,1 +1,1 @@
-# Store CSV files here
+# Store CSV files in that directory

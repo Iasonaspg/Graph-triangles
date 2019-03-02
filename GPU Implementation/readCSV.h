@@ -8,6 +8,9 @@
  *
  **********************************************************************/
 
+#ifndef READ_CSV_H
+#define READ_CSV_H
+
 /* Struct for Sparse Matrix type in the Compressed Sparse Row Format (CSR) */
 typedef struct Sparse_Matrix_in_CSR_format {
    int 		nnz;
@@ -19,9 +22,6 @@ typedef struct Sparse_Matrix_in_CSR_format {
  * as of the fact that it's all Aces ('1').
  * Only thing that matters is the positions of these Aces thus csrRowPtr 
  * alongside with csrColInd are adequate enough on their own */
-
-#ifndef READ_CSV_H
-#define READ_CSV_H
 
 int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matlab_time);
 

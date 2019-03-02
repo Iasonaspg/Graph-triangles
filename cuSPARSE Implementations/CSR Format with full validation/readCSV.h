@@ -1,6 +1,6 @@
 /**********************************************************************
  *
- * readCSV.h -- readCSV function for reading the input from
+ * readCSV.c -- readCSV function for reading the input from
  *              a .csv file
  *
  * Michail Iason Pavlidis <michailpg@ece.auth.gr>
@@ -11,23 +11,18 @@
 #ifndef READ_CSV_H
 #define READ_CSV_H
 
-/* Struct for Sparse Matrix type in the Compressed Sparse Row Format (CSR) */
+/* Struct for Sparse Matrix type in the Coordinate Format (CSR) */
 typedef struct Sparse_Matrix_in_CSR_format {
-   int 		nnz;
-   float* 	csrVal;
-   int* 	csrRowPtr;
-   int* 	csrColInd;
+   int   nnz;
+   float* csrVal;
+   int* csrRowPtr;
+   int* csrColInd;
 }csrFormat;
 
-/* Struct for Sparse Matrix type in the Coordinates Sparse Format (COO) */
-typedef struct Sparse_Matrix_in_COO_format {
-   int 		nnz;
-   float* 	cooVal;
-   int* 	cooRowInd;
-   int* 	cooColInd;
-}cooFormat;
+int readCSV(char* fName, csrFormat *A, int* N, int* M, int* nT_Mat, double* matlab_time);
+int split_line_int(char* str, char* delim, int* args);
+char *trim_space(char *in);
+int findLines(char* fName);
 
-int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matlab_time);
-int readCSV_COO(char* fName, cooFormat* A_COO, cooFormat* B);
 
 #endif /* READ_CSV_H */

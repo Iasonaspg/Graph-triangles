@@ -32,7 +32,7 @@ The Matlab script that was given to us contained minor errors, plus we added som
 
 3) Store inside folder *Data* the necessary CSV files. 
 
-   Alternatively, you can change appropriately line 36: `strcpy(csvFileName,  "../Data/DataDIMACS10_");` of every readCSV.c/cu file   and set the path to the the desired one - **not recommended** )
+   Alternatively, you can change appropriately line 36: `strcpy(csvFileName,  "../Data/DIMACS10_");` of every readCSV.c/cu file   and set the path to the the desired one - **not recommended** )
    
    **If all the previous are ommited, there will be no input file for the code to use, thus it won't operate**
 

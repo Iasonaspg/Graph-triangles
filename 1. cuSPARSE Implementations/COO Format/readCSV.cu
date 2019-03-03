@@ -33,7 +33,7 @@ int readCSV_COO(char* fName, cooFormat* A_COO, int* N, int* M, int* nT_Mat, doub
     valFileName = (char*)malloc(1000*sizeof(char));
     //                                                       B E     C A R E F U L
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    // Relative path to file: ../PD_4/Data/  ! ! ! ! (Change this if data is stored elsewhere)
+    // Relative path to file: ../Data/  ! ! ! ! (Change this if data is stored elsewhere)
     strcpy(valFileName,  "../../Data/DIMACS10_");
     // Do not change "DIMACS10_" unless you want to give it as input name aintside with (auto | great-britain_osm | delaunay_n22)
     // every time

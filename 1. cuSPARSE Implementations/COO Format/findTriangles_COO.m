@@ -29,7 +29,7 @@ close all
 basePath  = 'https://sparse.tamu.edu/mat';
 folderPath = './';
 groupName = 'DIMACS10';
-matName   = 'delaunay_n20'; % auto|great-britain_osm|delaunay_n22
+matName   = 'great-britain_osm'; % auto|great-britain_osm|delaunay_n22
 
 %% (BEGIN)
 
@@ -90,8 +90,6 @@ nT = full( sum( sum( A^2 .* A ) ) / 6 );
 matlab_time = toc(ticCnt);
 
 fprintf( '   - DONE: %d triangles found in %.5f sec\n', nT, matlab_time );
-
-dlmwrite([folderPath validationFileName], [N M nT matlab_time], 'delimiter', ',', 'precision', 9);
 
 %% (END)
 

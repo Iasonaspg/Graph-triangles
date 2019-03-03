@@ -31,7 +31,7 @@ int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matl
     //                                                       B E     C A R E F U L
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Path to file: ~/PD_4/Data/  ! ! ! ! (Change this if data is stored elsewhere)
-    strcpy(csvFileName,  "../../Data/DIMACS10_");
+    strcpy(csvFileName,  "../Data/DataDIMACS10_");
     // Do not change "DataDIMACS10_" unless you want to give it as input name aintside with (auto | great-britain_osm | delaunay_n22)
     // every time
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -89,7 +89,9 @@ int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matl
         printf("Could not open file\n");
         exit(EXIT_FAILURE);
     }
-
+    
+    read = getline(&line, &len, fp);
+    
     if ((read = getline(&line, &len, fp)) != -1)
         split_line_int(line,",",A->csrRowPtr);
 

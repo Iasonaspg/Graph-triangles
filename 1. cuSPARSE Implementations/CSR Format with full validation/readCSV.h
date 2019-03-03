@@ -20,9 +20,5 @@ typedef struct Sparse_Matrix_in_CSR_format {
 }csrFormat;
 
 int readCSV(char* fName, csrFormat *A, int* N, int* M, int* nT_Mat, double* matlab_time);
-int split_line_int(char* str, char* delim, int* args);
-char *trim_space(char *in);
-int findLines(char* fName);
-
 
 #endif /* READ_CSV_H */

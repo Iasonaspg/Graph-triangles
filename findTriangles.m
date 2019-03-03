@@ -28,7 +28,7 @@ close all
 basePath  = 'https://sparse.tamu.edu/mat';
 folderPath = './';
 groupName = 'DIMACS10';
-matName   = 'delaunay_n10'; % auto|great-britain_osm|delaunay_n22
+matName   = 'delaunay_n22'; % auto|great-britain_osm|delaunay_n22
 
 %% (BEGIN)
 

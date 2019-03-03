@@ -17,6 +17,8 @@
 #include <math.h>
 #include "readCSV.h"
 
+int split_line_int(char* str, char* delim, int* args);
+char *trim_space(char *in);
 
 int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matlab_time){
     FILE * fp;
@@ -31,7 +33,7 @@ int readCSV(char* fName, csrFormat* A, int* N, int* M, int* nT_Mat, double* matl
     //                                                       B E     C A R E F U L
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
     // Path to file: ~/PD_4/Data/  ! ! ! ! (Change this if data is stored elsewhere)
-    strcpy(csvFileName,  "../Data/DIMACS10_");
+    strcpy(csvFileName,  "../../Data/DataDIMACS10_");
     // Do not change "DataDIMACS10_" unless you want to give it as input name aintside with (auto | great-britain_osm | delaunay_n22)
     // every time
     // ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~

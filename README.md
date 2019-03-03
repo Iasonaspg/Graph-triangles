@@ -1,13 +1,11 @@
 # PD4
 The final assignment
 
- - Folder /CPU Implementation containts .c code for the CPU solution to the problem
+ - Folder /1. cuSPARSE Implementations containts .cu code utilizing the cuSPARSE library for the solution to the problem
 
- - Folder /GPU Implementation containts .cu code for the CUDA solution to the problem
+ - Folder /2. CPU Implementation containts .c code for the CPU solution to the problem
 
- - Folder /Naive GPU Implementation containts .cu code for the naive CUDA solution to the problem ( which ended up to be the best )
-
- - Folder /cuSPARSE Implementations containts .cu code utilizing the cuSPARSE library for the solution to the problem
+ - Folder /3. GPU Implementations containts .cu code for the CUDA solutions to the problem
 
  - Folder /Data containts the input files ( has to be created, or the code will have no input )
 
@@ -34,7 +32,7 @@ The Matlab script that was given to us contained minor errors, plus we added som
 
 3) Store inside folder *Data* the necessary CSV files. 
 
-   Alternatively, you can change appropriately line 34: `strcpy(csvFileName,  "../Data/DataDIMACS10_");` of every readCSV.c/cu file   and set the path to the the desired one - **not recommended** )
+   Alternatively, you can change appropriately line 36: `strcpy(csvFileName,  "../Data/DataDIMACS10_");` of every readCSV.c/cu file   and set the path to the the desired one - **not recommended** )
    
    **If all the previous are ommited, there will be no input file for the code to use, thus it won't operate**
 
@@ -42,4 +40,4 @@ The Matlab script that was given to us contained minor errors, plus we added som
 
 5) Make
 
-6) Execute ( ex. `./trianglesCPU auto` OR `./trianglesGPU delaunay_n22` ) 
+6) Execute ( ex. `./trianglesCUSPARSE auto --fullVal` OR `./trianglesCPU auto` OR `./trianglesGPU delaunay_n22` ) 

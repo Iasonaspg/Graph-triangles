@@ -1,0 +1,48 @@
+
+====================   C P U   ====================
+" Initial Implementation "
+1.684392		"delaunay_n22"
+1.411199		"auto"
+0.440514		"great-britain_osm"
+
+" Removed csrVal + Added condition if ( col>row ) "
+0.841656		"delaunay_n22"
+0.503872		"auto"
+0.209014		"great-britain_osm"
+
+====================   G P U   ====================
+" Naive, simple atomicAdd on global nT "
+149.881088		"delaunay_n22"
+87.607422		"auto"
+25.070881		"great-britain_osm"
+
+" atomicAdd replaced with atomicAggInc "
+176.744766		"delaunay_n22"
+98.173149		"auto"
+28.348000		"great-britain_osm"
+
+" Switched from thread per row to warp per row "
+0.123424		"delaunay_n10"
+399.335236		"delaunay_n22"
+124.014656		"auto"
+160.273956		"great-britain_osm"
+
+" Added Block Reduction "
+0.130048		"delaunay_n10"
+491.294250		"delaunay_n22"
+139.869720		"auto"
+181.048325		"great-britain_osm"
+
+" Switched to shfl_down() "
+0.130112
+486.818085
+133.583740
+181.286240
+
+" Switched back to naive, simple atomicAdd on global nT "
+" BUT with warp per row"
+0.112576		"delaunay_n10"
+425.014771		"delaunay_n22"
+119.116447		"auto"
+165.604706		"great-britain_osm"
+=====================  Idea Dumped =====================

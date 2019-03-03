@@ -13,10 +13,10 @@
  #
 ######################################################################
 
-PROJECT_NAME = trianglesGPU
+PROJECT_NAME = trianglesCUSPARSE
 
 # NVCC is path to nvcc. Here it is assumed /usr/local/cuda is on one's PATH.
-# CC is the compiler for C++ host code.
+# CC is the compiler for C host code.
 
 NVCC = nvcc
 CC = gcc

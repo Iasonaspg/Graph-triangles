@@ -1,7 +1,7 @@
 /**********************************************************************
  *
- * validation.c -- Validation function for the number of triangles 
- *                    calculated
+ * validation.cu (.c) -- Validation function for the number of triangles 
+ *                    	 calculated
  *
  * Michail Iason Pavlidis <michailpg@ece.auth.gr>
  * John Flionis <iflionis@auth.gr>
@@ -13,7 +13,7 @@
 #include <math.h>
 #include "validation.h"
 
-int validation(int nT, int nT_Mat)
+int validation( int nT, int nT_Mat )
 {
 
   if ( nT != nT_Mat )

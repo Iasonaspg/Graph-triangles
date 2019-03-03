@@ -52,10 +52,6 @@ int main (int argc, char **argv) {
   // 1D threads & blocks
   threadsPerBlock = 8 * warp;
   numberOfBlocks  = 5 * SMs;
-  // 2D threads & blocks
-  dim3 threads_per_block (warp/2, warp/2, 1);
-  dim3 number_of_blocks ( SMs/4, SMs/4, 1);  
-
 
   /* Allocate device memory to store the sparse CSR representation of A */
   d_A.nnz = h_A.nnz;

@@ -1,3 +1,12 @@
+/********************************************************************************
+ *
+ * sparse.cu -- Tester function for the csrgemm() CUDA function
+ *
+ * Michail Iason Pavlidis <michailpg@ece.auth.gr>
+ * John Flionis <iflionis@auth.gr>
+ *
+ ********************************************************************************/
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
@@ -5,80 +14,243 @@
 #include <cusparse_v2.h>
 #include <sys/time.h>
 #include "readCSV.h"
+#include "cuFindTriangles.h"
+#include "validation.h"
 
 
-double cpuSecond() {
-    struct timeval tp;
-    gettimeofday(&tp,NULL);
-    return ((double)tp.tv_sec + (double)tp.tv_usec*1.e-6);
-}
+int main(int argc, char** argv){
 
-void mulSparse(cooFormat* A, cooFormat* C, int N){
+    int *h_nT, nT_Mat, N, M,
+        *d_nT;
 
-    // Initialize cuSPARSE
-    cusparseHandle_t handle;   
-    cusparseCreate(&handle);
+    double matlab_time;
 
-    int nnzA = A->nnz;
+    char csrFormatValidationFlag = 0;
 
-    // Bring array to gpu memory
-    float* devVal;
-    int* devCol, *devRow;
-    cudaMalloc((void**)&devVal,nnzA*sizeof(float));
-    cudaMalloc((void**)&devCol,nnzA*sizeof(int));
-    cudaMalloc((void**)&devRow,nnzA*sizeof(int));
-    cudaMemcpy(devVal,A->cooValA,nnzA*sizeof(float),cudaMemcpyHostToDevice);
-    cudaMemcpy(devCol,A->cooColIndA,nnzA*sizeof(int),cudaMemcpyHostToDevice);
-    cudaMemcpy(devRow,A->cooRowIndA,nnzA*sizeof(int),cudaMemcpyHostToDevice);
+    /* Create the structs of type csr and coo Formats to hold the Sparse Matrices A and B */
+    cooFormat h_A_COO, 
+              d_A_COO, d_B_COO;
 
-    // Convert to CSR format for cuSparse needs
-    int* csrRowPtrA;
-    cudaMallocManaged(&csrRowPtrA,(N+1)*sizeof(int));
-    cusparseXcoo2csr(handle,devRow,nnzA,N,csrRowPtrA,CUSPARSE_INDEX_BASE_ZERO);
-    
+    csrFormat d_B_CSR;
 
-    // Descriptor for sparse matrix A and C
-    cusparseMatDescr_t descrA,descrC;     
-    cusparseCreateMatDescr(&descrA);
-    cusparseCreateMatDescr(&descrC);
+    int *d_A_csrRowPtr, 
+        *d_B_cooRowInd;
 
-    int* d_C_RowPtr;
-    cudaMalloc((void**)&d_C_RowPtr,(N+1)*sizeof(*d_C_RowPtr));
+    /* Parsing input arguments */
+    if ( argc < 3 ) {
+        printf("--Reading Input Data from CSV file: Started--\n");    
+        readCSV_COO(argv[1], &h_A_COO, &N, &M, &nT_Mat, &matlab_time);
+        printf("--Reading Input Data from CSV file: DONE!--\n");   
+    } else {
+        printf("Usage: ./trianglesGPU <CSVfileName> <--csrVal>\n");
+        printf(" where <CSVfileName>.csv is the name of the input data file (auto | great-britain_osm | delaunay_n22 | delaunay_n10)\n");
+        printf("No need for suffix '.csv'\n");
+        printf("where <--csrVal> is the verbose flag for validation at quite every stage of the program\n");
+        exit(1);
+    }
 
-    // Calculate the number of C's non-zero values
-    int nnzC;
-    //cudaMallocManaged(&nnzC,sizeof(int));
-    cusparseOperation_t transA = CUSPARSE_OPERATION_NON_TRANSPOSE;
-    cusparseXcsrgemmNnz(handle,transA,transA,N,N,N,descrA,nnzA,csrRowPtrA,devCol,descrA,nnzA,csrRowPtrA,devCol,descrC,d_C_RowPtr,&nnzC);
 
-    printf("Non zero of C: %d\n",nnzC);
+    /* CUDA Device setup */
+    size_t threadsPerBlock, warp;
+    size_t numberOfBlocks, SMs;
+    cudaError_t err;
+    int deviceId;
+    cudaDeviceProp props;
+    cudaGetDevice(&deviceId);
+    cudaGetDeviceProperties(&props, deviceId);
+    warp = props.warpSize;
+    SMs = props.multiProcessorCount;
+    // 1D threads & blocks
+    threadsPerBlock = 8 * warp;
+    numberOfBlocks  = 5 * SMs;
 
-    // Allocate memory for array C
-    float* d_C;
-    int *d_C_ColIndices;
-    cudaMalloc((void**)&d_C, (nnzC)*sizeof(*d_C));
-    cudaMalloc((void**)&d_C_ColIndices, (nnzC) * sizeof(*d_C_ColIndices));
-    
-    // Calculate the multiplication A*A
-    double start = cpuSecond();
-    cusparseScsrgemm(handle,transA,transA,N,N,N,descrA,nnzA,devVal,csrRowPtrA,devCol,descrA,nnzA,devVal,csrRowPtrA,devCol,descrC,d_C,d_C_RowPtr,d_C_ColIndices);
-    printf("Time elapsed for multiplication: %f seconds\n",cpuSecond()-start);
 
-    // Convert row array from CSR to COO format
-    int* cooRowC;
-    cudaMalloc((void**)&cooRowC,(nnzC)*sizeof(int));
-    cusparseXcsr2coo(handle,d_C_RowPtr,(nnzC),N,cooRowC,CUSPARSE_INDEX_BASE_ZERO);
+    /* Create the cuSPARSE handle */
+    cusparseHandle_t handle = 0;
+    CHECK_CUSPARSE(cusparseCreate(&handle));    
 
-    C->nnz = nnzC;
-    C->cooValA = d_C;
-    C->cooRowIndA = cooRowC;
-    C->cooColIndA =  d_C_ColIndices;
+    /* Construct a descriptor of the matrix A */
+    cusparseMatDescr_t descrA = 0;
+    CHECK_CUSPARSE(cusparseCreateMatDescr(&descrA));
+    CHECK_CUSPARSE(cusparseSetMatType(descrA, CUSPARSE_MATRIX_TYPE_GENERAL));
+    CHECK_CUSPARSE(cusparseSetMatIndexBase(descrA, CUSPARSE_INDEX_BASE_ZERO));
 
-    cudaFree(devCol);
-    cudaFree(devVal);
-    cudaFree(devRow);
+    /* Construct a descriptor of the matrix B */
+    cusparseMatDescr_t descrB = 0;
+    CHECK_CUSPARSE(cusparseCreateMatDescr(&descrB));
+    CHECK_CUSPARSE(cusparseSetMatType(descrB, CUSPARSE_MATRIX_TYPE_GENERAL));
+    CHECK_CUSPARSE(cusparseSetMatIndexBase(descrB, CUSPARSE_INDEX_BASE_ZERO));
 
-    cusparseDestroyMatDescr(descrA);
-    cusparseDestroyMatDescr(descrC);
-    cusparseDestroy(handle);
+    /* Allocate device memory to store the sparse COO representation of A */
+    d_A_COO.nnz = h_A_COO.nnz;
+    CUDA_CALL(cudaMalloc((void **)&(d_A_COO.cooVal),    sizeof(float) * d_A_COO.nnz));
+    CUDA_CALL(cudaMalloc((void **)&(d_A_COO.cooRowInd), sizeof(int) * d_A_COO.nnz));
+    CUDA_CALL(cudaMalloc((void **)&(d_A_csrRowPtr), sizeof(int) * (N + 1)));
+    CUDA_CALL(cudaMalloc((void **)&(d_A_COO.cooColInd), sizeof(int) * d_A_COO.nnz));
+
+    /* Copy the sparse COO representation of A from the Host to the Device */
+    CUDA_CALL(cudaMemcpy(d_A_COO.cooVal,    h_A_COO.cooVal,    d_A_COO.nnz * sizeof(float), cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_A_COO.cooRowInd, h_A_COO.cooRowInd, d_A_COO.nnz * sizeof(int)  , cudaMemcpyHostToDevice));
+    CUDA_CALL(cudaMemcpy(d_A_COO.cooColInd, h_A_COO.cooColInd, d_A_COO.nnz * sizeof(int)  , cudaMemcpyHostToDevice));
+
+    int baseB;
+    // nnzTotalDevHostPtr points to host memory
+    int *nnzTotalDevHostPtr = &(d_B_CSR.nnz);
+    CHECK_CUSPARSE(cusparseSetPointerMode(handle, CUSPARSE_POINTER_MODE_HOST));
+
+    // Allocate device memory to store the Row Pointers of the sparse CSR representation of B
+    CUDA_CALL(cudaMalloc((void**)&(d_B_CSR.csrRowPtr), sizeof(int)*(N+1)));
+
+
+    /* Timer variables setup */
+    cudaEvent_t start, stop;
+    cudaEventCreate(&start);
+    cudaEventCreate(&stop);
+
+            /* Begin timer */
+            cudaEventRecord(start);
+
+    /* A from COO 2 CSR */            
+    CHECK_CUSPARSE(cusparseXcoo2csr(handle,
+                    d_A_COO.cooRowInd,
+                    d_A_COO.nnz,
+                    N,
+                    d_A_csrRowPtr,
+                    CUSPARSE_INDEX_BASE_ZERO ));
+
+    /* First determine the nnz of Sparse Matrix B */
+    CHECK_CUSPARSE(cusparseXcsrgemmNnz(handle,
+                        CUSPARSE_OPERATION_NON_TRANSPOSE, 
+                        CUSPARSE_OPERATION_NON_TRANSPOSE,
+                        N, 
+                        N, 
+                        N,
+                        descrA, 
+                        d_A_COO.nnz,
+                        d_A_csrRowPtr, 
+                        d_A_COO.cooColInd,
+                        descrA, 
+                        d_A_COO.nnz,
+                        d_A_csrRowPtr, 
+                        d_A_COO.cooColInd,
+                        descrB, 
+                        d_B_CSR.csrRowPtr,
+                        nnzTotalDevHostPtr ));
+
+    if (NULL != nnzTotalDevHostPtr){
+        d_B_CSR.nnz = *nnzTotalDevHostPtr;
+    } else {
+        CUDA_CALL(cudaMemcpy(&(d_B_CSR.nnz), d_B_CSR.csrRowPtr+N, sizeof(int), cudaMemcpyDeviceToHost));
+        CUDA_CALL(cudaMemcpy(&baseB,     d_B_CSR.csrRowPtr,   sizeof(int), cudaMemcpyDeviceToHost));
+        d_B_CSR.nnz -= baseB;
+    }
+
+    /* Allocate device memory to store the rest of the sparse CSR representation of B */
+    CUDA_CALL(cudaMalloc((void**)&d_B_CSR.csrVal,       sizeof(float) * d_B_CSR.nnz));
+    CUDA_CALL(cudaMalloc((void **)&(d_B_cooRowInd),     sizeof(int) * d_B_CSR.nnz));
+    CUDA_CALL(cudaMalloc((void**)&d_B_CSR.csrColInd,    sizeof(int) * d_B_CSR.nnz));
+
+    /* Perform the actual multiplication A * A = B */
+    CHECK_CUSPARSE(cusparseScsrgemm(handle,
+                        CUSPARSE_OPERATION_NON_TRANSPOSE, 
+                        CUSPARSE_OPERATION_NON_TRANSPOSE,
+                        N, 
+                        N, 
+                        N,
+                        descrA, 
+                        d_A_COO.nnz,
+                        d_A_COO.cooVal,
+                        d_A_csrRowPtr, 
+                        d_A_COO.cooColInd,
+                        descrA, 
+                        d_A_COO.nnz,
+                        d_A_COO.cooVal,
+                        d_A_csrRowPtr, 
+                        d_A_COO.cooColInd,
+                        descrB,
+                        d_B_CSR.csrVal,
+                        d_B_CSR.csrRowPtr, 
+                        d_B_CSR.csrColInd ));
+
+    /* B from CSR 2 COO */            
+    CHECK_CUSPARSE(cusparseXcsr2coo(handle,
+                        d_B_CSR.csrRowPtr,
+                        d_B_CSR.nnz,
+                        N,
+                        d_B_cooRowInd,
+                        CUSPARSE_INDEX_BASE_ZERO ));
+
+    /* d_B_CSR converted to d_B_COO */
+    CUDA_CALL(cudaFree(d_B_CSR.csrRowPtr));     
+    d_B_COO.nnz       = d_B_CSR.nnz;
+    d_B_COO.cooVal    = d_B_CSR.csrVal;
+    d_B_COO.cooRowInd = d_B_cooRowInd;
+    d_B_COO.cooColInd = d_B_CSR.csrColInd;
+
+    /* Allocating memory to hold the nT variable (number of Triangles) */
+    CUDA_CALL(cudaMalloc(&d_nT, 1 * sizeof(int)));
+    h_nT = (int*)malloc (1 * sizeof(int));
+
+    /* Zero out the content of the variable, 
+    so that the summation result is valid */
+    cuZeroVariable<<<1,1>>>( d_nT );
+
+    CUDA_CALL(cudaDeviceSynchronize());
+
+    /* Hadamard Product Manually */
+    // Calculating the Number of Triangles (nT) through the kernel 
+    // (Only the sumation is performed here, the *(1/6) will be executed later on)
+    cuTrianglesFinderHadamardOnly<<<numberOfBlocks, threadsPerBlock>>>
+    (d_A_COO, d_B_COO, d_A_COO.nnz, d_B_COO.nnz, d_nT);
+
+            err = cudaGetLastError();
+            if (err != cudaSuccess) {
+                printf("Error \"%s\" at %s:%d\n", cudaGetErrorString(err),
+                       __FILE__,__LINE__);
+                return EXIT_FAILURE;
+            }
+
+    CUDA_CALL(cudaDeviceSynchronize());
+
+            /* Stop Timer */
+            cudaEventRecord(stop);
+            cudaEventSynchronize(stop);
+
+    /* Copying nT, as calculated on GPU, back to the CPU */
+    CUDA_CALL(cudaMemcpy(h_nT, d_nT, 1 * sizeof(int), cudaMemcpyDeviceToHost));
+
+    /* Validating the result */
+    // Executing the nT = nT*(1/6), that was omitted in cuFindTriangles
+    int pass = validation(*h_nT/3, nT_Mat);    
+    // though as of condition if ( col>row ) we have cut additions to half
+    // due to the symmetry of the adjacency matrix, so 2*(nT/6) = nT/3
+    assert(pass != 0);
+
+    /* Calculate elapsed time */
+    float milliseconds = 0;
+    cudaEventElapsedTime(&milliseconds, start, stop);
+
+    /* Timer display */
+    printf("  -GPU number of triangles nT: %d, Wall clock time: %fms ( < %lf ( Matlab Time ) )\n", *h_nT/3, milliseconds, matlab_time);
+
+            /* Write the results into file */
+            FILE *fp;
+            fp = fopen("GPU_Results.txt", "a");
+            if ( fp == NULL ) {
+              perror("Failed: Opening file Failed\n");
+              return 1;
+            }
+            fprintf(fp, "%f\n", milliseconds);
+            fclose(fp);
+
+    /* Cleanup */
+    CUDA_CALL(cudaFree(d_A_COO.cooVal));          CUDA_CALL(cudaFree(d_B_CSR.csrVal));
+    CUDA_CALL(cudaFree(d_A_COO.cooRowInd));       CUDA_CALL(cudaFree(d_B_cooRowInd));
+    CUDA_CALL(cudaFree(d_A_COO.cooColInd));       CUDA_CALL(cudaFree(d_B_CSR.csrColInd));
+
+    CHECK_CUSPARSE(cusparseDestroyMatDescr(descrA));
+    CHECK_CUSPARSE(cusparseDestroyMatDescr(descrB));
+    CHECK_CUSPARSE(cusparseDestroy(handle));
+
+    return 0;
 }

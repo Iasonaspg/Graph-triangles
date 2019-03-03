@@ -8,6 +8,8 @@
  *
  **********************************************************************/
 
+#include "readCSV.h"
+
 #ifndef VALIDATION_H
 #define VALIDATION_H
 

@@ -42,8 +42,7 @@ fprintf( '   - %s/%s\n', groupName, matName )
 filesep = '/';
 
 matFileName = [groupName '_' matName '.mat'];
-csvFileName = [groupName '_' matName '.csv'];
-validationFileName = [groupName '_' matName '_validation_file.csv'];
+csvFileName = [groupName '_' matName '_COO.csv'];
 
 if ~exist( matFileName, 'file' )
   fprintf('   - downloading graph...\n')

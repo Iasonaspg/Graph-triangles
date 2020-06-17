@@ -1,5 +1,7 @@
-# PD4
-The final assignment
+# Graph-triangles
+This project contains our implementations of an algorithm that calculates the number of triangles on an undirected graph. We used both the cuSPARSE library and custom CUDA implementations. The later proved quite faster.
+
+## Contents
 
  - Folder /1. cuSPARSE Implementations containts .cu code utilizing the cuSPARSE library for the solution to the problem
 
